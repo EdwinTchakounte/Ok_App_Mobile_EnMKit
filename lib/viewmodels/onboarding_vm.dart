@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-
-
-
 class OnboardingVM extends ChangeNotifier {
   final PageController pageController = PageController();
   int currentPage = 0;
