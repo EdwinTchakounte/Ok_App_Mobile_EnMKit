@@ -10,7 +10,7 @@ class KitRepository {
     await db.insert('kits', kit.toMap());
   }
 
-  Future<List<KitModel>> getKits() async {
+  Future<List<KitModel>> getKit() async {
     final db = await _dbService.database;
     final kitMaps = await db.query('kits'); // SQLite natif
     return kitMaps.map((map) => KitModel.fromMap(map)).toList();

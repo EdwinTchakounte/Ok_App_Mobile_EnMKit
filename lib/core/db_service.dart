@@ -72,7 +72,6 @@ class DBService {
      await db.execute('''
     CREATE TABLE kits(
       kitNumber TEXT PRIMARY KEY,
-      allowedNumbers TEXT,
       initialConsumption REAL,
       pulseCount INTEGER
     )
