@@ -41,16 +41,6 @@ class DBService {
       );
     ''');
 
-    // TABLE Kit
-    await db.execute('''
-      CREATE TABLE kits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        kitNumber TEXT NOT NULL,
-        initialConsumption REAL NOT NULL,
-        pulseCount INTEGER NOT NULL
-      );
-    ''');
-
     // TABLE AllowedNumbers (relation kit -> numéros autorisés)
     await db.execute('''
       CREATE TABLE allowed_numbers (
@@ -59,14 +49,6 @@ class DBService {
       );
     ''');
 
-    // TABLE Relays
-    await db.execute('''
-      CREATE TABLE relays (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        isActive INTEGER NOT NULL DEFAULT 0,
-      );
-    ''');
 
     // TABLE Consumption (historique des consommations)
     await db.execute('''
@@ -87,6 +69,24 @@ class DBService {
       );
     ''');
 
+     await db.execute('''
+    CREATE TABLE kits(
+      kitNumber TEXT PRIMARY KEY,
+      allowedNumbers TEXT,
+      initialConsumption REAL,
+      pulseCount INTEGER
+    )
+  ''');
+
+  await db.execute('''
+    CREATE TABLE relays(
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      isActive INTEGER,
+      amperage INTEGER,
+    )
+  ''');
+
   // insertion admin par défaut
   await db.insert('users', {
     'phoneNumber': DefaultData.adminPhoneNumber,
@@ -101,7 +101,6 @@ class DBService {
       'name': relay['name'],
       'isActive': relay['isActive'],
       'amperage': relay['amperage'],
-      'isAdmin':1,
     });
   } 
   }
