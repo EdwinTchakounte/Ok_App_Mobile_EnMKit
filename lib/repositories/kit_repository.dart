@@ -36,12 +36,9 @@ class KitRepository {
   }
 
 
-  Future<void> deleteKit(String kitNumber) async {
+   /// Supprime l'enregistrement existant
+  Future<void> clearKit() async {
     final db = await _dbService.database;
-    await db.delete(
-      'kits',
-      where: 'kitNumber = ?',
-      whereArgs: [kitNumber],
-    );
+    await db.delete('kits');
   }
 }

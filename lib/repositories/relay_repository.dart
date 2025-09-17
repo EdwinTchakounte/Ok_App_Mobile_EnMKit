@@ -49,4 +49,10 @@ class RelayRepository {
       whereArgs: [id],
     );
   }
+
+    /// Supprime tous les relais
+  Future<void> clearRelays() async {
+    final db = await _dbService.database;
+    await db.delete('relays');
+  }
 }

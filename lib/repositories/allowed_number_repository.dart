@@ -38,4 +38,10 @@ class AllowedNumberRepository {
       whereArgs: [id],
     );
   }
+
+    /// Supprime tous les numéros autorisés
+  Future<void> clearAllowedNumbers() async {
+    final db = await _dbService.database;
+    await db.delete('allowed_numbers');
+  }
 }
