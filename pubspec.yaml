@@ -39,6 +39,8 @@ dependencies:
   sms_sender_background: ^1.0.6
   readsms: ^0.2.0+4
   pretty_qr_code: ^3.5.0
+  curved_navigation_bar: ^1.0.6
+  fl_chart: ^1.1.0
 
 dev_dependencies:
   flutter_test:

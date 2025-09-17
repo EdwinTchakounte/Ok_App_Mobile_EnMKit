@@ -441,43 +441,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ],
             ),
             const SizedBox(height: 12),
-            // Switch avec animation
-            // SingleChildScrollView(
-            // scrollDirection: Axis.horizontal,   
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.center,
-            //     children: [
-            //       Text(
-            //         switchText??"",
-            //         style: TextStyle(
-            //           color: Colors.grey.shade600,
-            //           fontSize: 15,
-            //         ),
-            //       ),
-            //       const SizedBox(width: 8),
-            //       GestureDetector(
-            //         onTap: switchAction,
-            //         child: Container(
-            //           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            //           decoration: BoxDecoration(
-            //             gradient: const LinearGradient(
-            //               colors: [Color(0xFF4299E1), Color(0xFF3182CE)],
-            //             ),
-            //             borderRadius: BorderRadius.circular(20),
-            //           ),
-            //           child: Text(
-            //             switchActionText??"",
-            //             style: const TextStyle(
-            //               color: Colors.white,
-            //               fontWeight: FontWeight.bold,
-            //               fontSize: 14,
-            //             ),
-            //           ),
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
+
           ],
         ),
       ),

@@ -1,5 +1,7 @@
 import 'package:enmkit/ui/screens/auth/auth_screen.dart';
+import 'package:enmkit/ui/screens/home/home.dart';
 import 'package:enmkit/ui/screens/onboarding/onboarding_screen.dart';
+import 'package:enmkit/ui/screens/wrapper/wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
       title: 'Contrôle Kit Électrique',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,  // automatique selon les réglages du téléphone
-      home: const AuthScreen(),
+      home: const RootPage(),
     );
   }
 }

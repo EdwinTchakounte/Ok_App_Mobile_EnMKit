@@ -26,6 +26,16 @@ class KitRepository {
     );
   }
 
+  Future<String?> getKitNumber() async {
+    final db = await _dbService.database;
+    final res = await db.query("kits", limit: 1);
+    if (res.isNotEmpty) {
+      return res.first['kitNumber'] as String;
+    }
+    return null;
+  }
+
+
   Future<void> deleteKit(String kitNumber) async {
     final db = await _dbService.database;
     await db.delete(
