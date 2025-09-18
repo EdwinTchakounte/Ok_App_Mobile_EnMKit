@@ -601,7 +601,7 @@ class RelaysScreen extends ConsumerWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: relay.isOn 
+          color: relay.isOn
               ? const Color(0xFF10B981).withOpacity(0.3)
               : const Color(0xFFE2E8F0),
         ),
@@ -1182,14 +1182,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showQRCodeDialog() {
-    final settings = ref.read(settingsProvider);
-    final qrData = {
-      'kit': settings.kitNumber,
-      'controllers': settings.controllerNumbers,
-      'status': settings.systemStatus,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-
+    ref.read(settingsProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
