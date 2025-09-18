@@ -1,7 +1,17 @@
 
+import 'package:enmkit/core/db_service.dart';
+import 'package:enmkit/core/qr_service.dart';
+import 'package:enmkit/core/sms_service.dart';
+import 'package:enmkit/models/allowed_number_model.dart';
 import 'package:enmkit/models/kit_model.dart';
+import 'package:enmkit/models/relay_model.dart';
 import 'package:enmkit/providers.dart';
+import 'package:enmkit/repositories/allowed_number_repository.dart';
+import 'package:enmkit/repositories/kit_repository.dart';
+import 'package:enmkit/repositories/relay_repository.dart';
+import 'package:enmkit/ui/screens/qr_screen.dart';
 import 'package:enmkit/ui/screens/relays_screen.dart';
+import 'package:enmkit/viewmodels/relayViewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -28,77 +38,44 @@ class ConsumptionData {
   ConsumptionData({required this.time, required this.value});
 }
 
-class SystemSettings {
-  String kitNumber;
-  List<String> controllerNumbers;
-  bool systemStatus;
+// class SystemSettings {
+  
+//   String kitNumber;
+//   List<String> controllerNumbers;
+//   bool systemStatus;
 
-  SystemSettings({
-    this.kitNumber = "ENM-001",
-    this.controllerNumbers = const ["CTRL-01", "CTRL-02", "CTRL-03"],
-    this.systemStatus = true,
-  });
-}
+//   SystemSettings({
+//     this.kitNumber = "",
+//     this.controllerNumbers = const ["CTRL-01", "CTRL-02", "CTRL-03"],
+//     this.systemStatus = true,
+//   });
+// }
 
-// Providers
-final relaysProvider = StateNotifierProvider<RelaysNotifier, List<Relay>>((ref) {
-  return RelaysNotifier();
-});
 
-final consumptionProvider = StateProvider<List<ConsumptionData>>((ref) {
-  return List.generate(7, (index) => 
-    ConsumptionData(
-      time: DateTime.now().subtract(Duration(days: 6 - index)),
-      value: 12.5 + (index * 2.3) + (index % 2 == 0 ? 1.5 : -1.2),
-    )
-  );
-});
+// final settingsProvider = StateNotifierProvider<SettingsNotifier, SystemSettings>((ref) {
+//   return SettingsNotifier();
+// });
 
-final settingsProvider = StateNotifierProvider<SettingsNotifier, SystemSettings>((ref) {
-  return SettingsNotifier();
-});
 
-class RelaysNotifier extends StateNotifier<List<Relay>> {
-  RelaysNotifier() : super([
-    Relay(id: 'r1', name: 'Éclairage Salon', amperage: 2.5),
-    Relay(id: 'r2', name: 'Réfrigérateur', amperage: 4.2),
-    Relay(id: 'r3', name: 'Climatisation', amperage: 8.5),
-  ]);
+// class SettingsNotifier extends StateNotifier<SystemSettings> {
+//   SettingsNotifier() : super(SystemSettings());
 
-  void toggleRelay(String id) {
-    state = state.map((relay) {
-      if (relay.id == id) {
-        relay.isOn = !relay.isOn;
-        _sendSMSCommand('${relay.id}${relay.isOn ? 'On' : 'Off'}');
-      }
-      return relay;
-    }).toList();
-  }
+//   void updateKitNumber(String newNumber) {
+//     state = SystemSettings(
+//       kitNumber: newNumber,
+//       controllerNumbers: state.controllerNumbers,
+//       systemStatus: state.systemStatus,
+//     );
+//   }
 
-  void _sendSMSCommand(String command) {
-    print('Envoi SMS: $command');
-  }
-}
-
-class SettingsNotifier extends StateNotifier<SystemSettings> {
-  SettingsNotifier() : super(SystemSettings());
-
-  void updateKitNumber(String newNumber) {
-    state = SystemSettings(
-      kitNumber: newNumber,
-      controllerNumbers: state.controllerNumbers,
-      systemStatus: state.systemStatus,
-    );
-  }
-
-  void updateControllerNumbers(List<String> newNumbers) {
-    state = SystemSettings(
-      kitNumber: state.kitNumber,
-      controllerNumbers: newNumbers,
-      systemStatus: state.systemStatus,
-    );
-  }
-}
+//   void updateControllerNumbers(List<String> newNumbers) {
+//     state = SystemSettings(
+//       kitNumber: state.kitNumber,
+//       controllerNumbers: newNumbers,
+//       systemStatus: state.systemStatus,
+//     );
+//   }
+// }
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -201,14 +178,18 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
                 ),
               ],
             ),
-            child: const Icon(Icons.electrical_services, color: Colors.white, size: 22),
+            child: Image.asset(
+              'asset/images/logo.png',
+              width: 24,
+              height: 24,
+            ),
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'ENMKit Control',
+                'EnMKit Control',
                 style: TextStyle(
                   color: Color(0xFF1E293B),
                   fontSize: 16,
@@ -236,7 +217,7 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(
-            Icons.notifications_outlined,
+            Icons.electric_bolt_outlined,
             color: Color(0xFF64748B),
             size: 20,
           ),
@@ -296,11 +277,11 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildWelcomeCard(),
+            _buildWelcomeCard(ref),
             const SizedBox(height: 24),
-            _buildQuickStats(),
-            const SizedBox(height: 24),
-            _buildQuickActions(),
+            _buildQuickStats(ref),
+            // const SizedBox(height: 24),
+            // _buildQuickActions(),
             const SizedBox(height: 24),
             _buildSystemStatus(),
             const SizedBox(height: 100),
@@ -310,7 +291,10 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWelcomeCard() {
+  Widget _buildWelcomeCard(WidgetRef ref) {
+    final relayVM = ref.watch(relaysProvider);
+    final total_relay=relayVM.activeRelaysCount+relayVM.inactiveRelaysCount;
+    final consumption =ref.watch(consumptionProvider);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -367,8 +351,8 @@ class HomeScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildMiniStat('3', 'Relais', Icons.power),
-              _buildMiniStat('24.7', 'kWh', Icons.flash_on),
+              _buildMiniStat('${total_relay}', 'Relais', Icons.power),
+              _buildMiniStat('${consumption.getLastConsumption()}', 'kWh', Icons.flash_on),
               _buildMiniStat('98%', 'Statut', Icons.check_circle),
             ],
           ),
@@ -401,15 +385,33 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard('Actifs', '3 Relais', Icons.electrical_services, const Color(0xFF10B981))),
-        const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Puissance', '15.2 kW', Icons.flash_on, const Color(0xFFF59E0B))),
-      ],
-    );
-  }
+Widget _buildQuickStats(WidgetRef ref) {
+  final relayVM = ref.watch(relaysProvider);
+
+  return Row(
+    children: [
+      Expanded(
+        child: _buildStatCard(
+          'Actifs',
+          '${relayVM.activeRelaysCount} Relais',
+          Icons.electrical_services,
+          const Color(0xFF10B981),
+        ),
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: _buildStatCard(
+          'Inactifs',
+          '${relayVM.inactiveRelaysCount} Relais',
+          Icons.flash_off,
+          const Color(0xFFE11D48),
+        ),
+      ),
+    ],
+  );
+}
+
+
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
@@ -553,7 +555,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  'Dernière sync: il y a 2 minutes',
+                  'Synchronisation Valide',
                   style: TextStyle(
                     fontSize: 12,
                     color: Color(0xFF64748B),
@@ -568,140 +570,15 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// // ÉCRAN DES RELAIS ÉPURÉ
-// class RelaysScreen extends ConsumerWidget {
-//   const RelaysScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context, WidgetRef ref) {
-//     final relays = ref.watch(relaysProvider);
-    
-//     return SingleChildScrollView(
-//       physics: const BouncingScrollPhysics(),
-//       child: Padding(
-//         padding: const EdgeInsets.all(24),
-//         child: Column(
-//           children: [
-//             const SizedBox(height: 20),
-//             ListView.separated(
-//               shrinkWrap: true,
-//               physics: const NeverScrollableScrollPhysics(),
-//               itemCount: relays.length,
-//               separatorBuilder: (context, index) => const SizedBox(height: 16),
-//               itemBuilder: (context, index) => _buildCleanRelayCard(relays[index], ref),
-//             ),
-//             const SizedBox(height: 100),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildCleanRelayCard(Relay relay, WidgetRef ref) {
-//     return Container(
-//       padding: const EdgeInsets.all(24),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(16),
-//         border: Border.all(
-//           color: relay.isOn 
-//               ? const Color(0xFF10B981).withOpacity(0.3)
-//               : const Color(0xFFE2E8F0),
-//         ),
-//         boxShadow: [
-//           BoxShadow(
-//             color: relay.isOn 
-//                 ? const Color(0xFF10B981).withOpacity(0.1)
-//                 : Colors.black.withOpacity(0.04),
-//             blurRadius: relay.isOn ? 15 : 10,
-//             offset: const Offset(0, 4),
-//           ),
-//         ],
-//       ),
-//       child: Row(
-//         children: [
-//           Container(
-//             width: 60,
-//             height: 60,
-//             decoration: BoxDecoration(
-//               color: relay.isOn 
-//                   ? const Color(0xFF10B981)
-//                   : const Color(0xFFF1F5F9),
-//               borderRadius: BorderRadius.circular(14),
-//             ),
-//             child: Icon(
-//               relay.isOn ? Icons.power : Icons.power_off,
-//               color: relay.isOn ? Colors.white : const Color(0xFF64748B),
-//               size: 26,
-//             ),
-//           ),
-//           const SizedBox(width: 20),
-//           Expanded(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Text(
-//                   relay.name,
-//                   style: const TextStyle(
-//                     fontSize: 16,
-//                     fontWeight: FontWeight.bold,
-//                     color: Color(0xFF1E293B),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 4),
-//                 Text(
-//                   'ID: ${relay.id} • ${relay.amperage}A',
-//                   style: const TextStyle(
-//                     fontSize: 12,
-//                     color: Color(0xFF64748B),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 8),
-//                 Container(
-//                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-//                   decoration: BoxDecoration(
-//                     color: relay.isOn 
-//                         ? const Color(0xFF10B981).withOpacity(0.1)
-//                         : const Color(0xFFF1F5F9),
-//                     borderRadius: BorderRadius.circular(12),
-//                   ),
-//                   child: Text(
-//                     relay.isOn ? 'ACTIVÉ' : 'DÉSACTIVÉ',
-//                     style: TextStyle(
-//                       fontSize: 10,
-//                       fontWeight: FontWeight.bold,
-//                       color: relay.isOn 
-//                           ? const Color(0xFF10B981)
-//                           : const Color(0xFF64748B),
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           ),
-//           Switch(
-//             value: relay.isOn,
-//             onChanged: (value) {
-//               ref.read(relaysProvider.notifier).toggleRelay(relay.id);
-//             },
-//             activeColor: const Color(0xFF10B981),
-//             activeTrackColor: const Color(0xFF10B981).withOpacity(0.3),
-//             inactiveThumbColor: const Color(0xFF94A3B8),
-//             inactiveTrackColor: const Color(0xFFE2E8F0),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 // ÉCRAN DE CONSOMMATION ÉPURÉ
 class ConsumptionScreen extends ConsumerWidget {
   const ConsumptionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final consumptionData = ref.watch(consumptionProvider);
+    final consumptionVM = ref.watch(consumptionProvider);
+    final lastConsumption = consumptionVM.getLastConsumption();
+
     
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -710,11 +587,9 @@ class ConsumptionScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildCurrentConsumption(),
+            _buildCurrentConsumption(ref),
             const SizedBox(height: 24),
-            _buildConsumptionChart(consumptionData),
-            const SizedBox(height: 24),
-            _buildRefreshButton(),
+            _buildRefreshButton(ref),
             const SizedBox(height: 100),
           ],
         ),
@@ -722,7 +597,15 @@ class ConsumptionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCurrentConsumption() {
+  Widget _buildCurrentConsumption(WidgetRef ref) {
+    final consumptionVM = ref.watch(consumptionProvider);
+    final kitP=ref.watch(kitProvider);
+    final dataKit=kitP.kits.isNotEmpty ? kitP.kits.first : null;
+    final lastConsumption = consumptionVM.getLastConsumption();
+    final lastConsumptionText = lastConsumption != null
+    ? "${lastConsumption.kwh} kWh"
+    : "Aucune donnée";
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -749,9 +632,9 @@ class ConsumptionScreen extends ConsumerWidget {
             child: const Icon(Icons.flash_on, color: Color(0xFF3B82F6), size: 32),
           ),
           const SizedBox(height: 20),
-          const Text(
-            '24.7 kWh',
-            style: TextStyle(
+          Text(
+            lastConsumptionText,
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1E293B),
@@ -759,7 +642,7 @@ class ConsumptionScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Consommation aujourd\'hui',
+            'Dernière Consommation ',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF64748B),
@@ -769,8 +652,7 @@ class ConsumptionScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildConsumptionStat('2,847', 'Pulsations', Icons.timeline),
-              _buildConsumptionStat('3.2A', 'Courant', Icons.electrical_services),
+              _buildConsumptionStat('${dataKit?.pulseCount}', 'Pulsations', Icons.timeline),
             ],
           ),
         ],
@@ -902,7 +784,9 @@ class ConsumptionScreen extends ConsumerWidget {
     return days[day.weekday - 1];
   }
 
-  Widget _buildRefreshButton() {
+  Widget _buildRefreshButton(WidgetRef ref)  {
+    final _kitRepository=KitRepository( DBService());
+  final SmsService _smsService=SmsService(_kitRepository);
     return Container(
       width: double.infinity,
       height: 52,
@@ -918,7 +802,9 @@ class ConsumptionScreen extends ConsumerWidget {
         ],
       ),
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () {
+             _smsService.requestConsumption();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -954,7 +840,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final kit_data = ref.watch(kitProvider);
+    final relays_data = ref.watch(relaysProvider);
+    final dbService = DBService();
+      final qrService = QrService(
+      kitRepo: KitRepository(dbService),
+      relayRepo: RelayRepository(dbService),
+      allowedRepo: AllowedNumberRepository(dbService),
+    );
     
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -965,32 +858,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 20),
             _buildSettingCard(
               'Numéro du Kit',
-              'ENM-001',
+              '${kit_data.kits.isNotEmpty ? kit_data.kits.first.kitNumber : "Non configuré"}',
               Icons.memory,
               () => _showEditDialog('Kit', _kitController),
             ),
             const SizedBox(height: 16),
             _buildSettingCard(
-              'Contrôleurs',
-              '${settings.controllerNumbers.length} configurés',
+              'Relais Configurés',
+              '${relays_data.relays.length} configurés',
               Icons.device_hub,
-              () => _showControllersDialog(),
+              () => _showControllersDialog(ref),
             ),
             const SizedBox(height: 16),
             _buildSettingCard(
               'Générer QR Code',
               'Configuration système',
               Icons.qr_code,
-              () => _showQRCodeDialog(),
+              () =>  Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QrPage(qrService: qrService),
+      ),),
             ),
             const SizedBox(height: 16),
             _buildSettingCard(
               'État Système',
-              settings.systemStatus ? 'Opérationnel' : 'Arrêté',
+              kit_data.kits.isNotEmpty ? 'Opérationnel' : 'Arrêté',
               Icons.info_outline,
               () => _showSystemStatus(),
             ),
             const SizedBox(height: 16),
+
+            _buildSettingCard(
+              'Numéros Autorisés',
+              'à controler le Kit',
+              Icons.qr_code_scanner,
+              () => _showAllowedNumbersDialog(),
+            ),
+
+            _buildSettingCard(
+              'Paramètres Compteurs',
+              'à definir ici',
+              Icons.qr_code_scanner,
+              () => _showPulseAndConsumptionDialog(),
+            ),
+            
+            
+
+  const SizedBox(height: 16),
             _buildSettingCard(
               'Importer QR Code',
               'Mise à jour config',
@@ -1138,20 +1053,188 @@ void _showEditDialog( String field, TextEditingController controller) {
 }
 
 
-  void _showControllersDialog() {
-    final settings = ref.read(settingsProvider);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Contrôleurs', style: TextStyle(color: Colors.white)),
-        content: Column(
+
+void _showPulseAndConsumptionDialog() {
+  final kitP = ref.watch(kitProvider);
+  final TextEditingController pulsesController = TextEditingController();
+  final TextEditingController consumptionController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text(
+        'Configurer Consommation',
+        style: TextStyle(color: Colors.white),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Champ Pulsations
+          TextField(
+            controller: pulsesController,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Nombre d’impulsions',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Champ Consommation initiale
+          TextField(
+            controller: consumptionController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Consommation initiale (kWh)',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3B82F6),
+          ),
+          onPressed: () {
+            final pulsesText = pulsesController.text.trim();
+            final consumptionText = consumptionController.text.trim();
+
+            if (pulsesText.isNotEmpty && consumptionText.isNotEmpty) {
+              final pulses = int.tryParse(pulsesText);
+              final consumption = double.tryParse(consumptionText);
+
+              if (pulses != null && consumption != null) {
+               kitP.updateKit(kitP.kits.first.copyWith(
+                  pulseCount: pulses,
+                  initialConsumption: consumption,
+                ));
+                Navigator.pop(context);
+              }
+            }
+          },
+          child: const Text('Enregistrer'),
+        ),
+      ],
+    ),
+  );
+}
+
+
+void _showAllowedNumbersDialog( ) {
+
+  final TextEditingController number1Controller = TextEditingController();
+  final TextEditingController number2Controller = TextEditingController();
+ final allownumbers=ref.watch(allowedNumberProvider);
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text(
+        'Ajouter Numéros Autorisés',
+        style: TextStyle(color: Colors.white),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: number1Controller,
+            keyboardType: TextInputType.phone,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Numéro 1 (obligatoire)',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: number2Controller,
+            keyboardType: TextInputType.phone,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Numéro 2 (optionnel)',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3B82F6),
+          ),
+          onPressed: () {
+            final number1 = number1Controller.text.trim();
+            final number2 = number2Controller.text.trim();
+
+            if (number1.isNotEmpty) {
+             allownumbers.addAllowedNumber(AllowedNumberModel(phoneNumber: number1));
+              if (number2.isNotEmpty) {
+                  allownumbers.addAllowedNumber(AllowedNumberModel(phoneNumber: number2));
+                }
+              Navigator.pop(context);
+            }
+          },
+          child: const Text('Enregistrer'),
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+void _showControllersDialog(WidgetRef ref) {
+  final relaysData = ref.watch(relaysProvider);
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text('Contrôleurs', style: TextStyle(color: Colors.white)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: settings.controllerNumbers.map((controller) => 
-            Padding(
+          children: relaysData.relays.map((relay) {
+            return Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -1160,151 +1243,191 @@ void _showEditDialog( String field, TextEditingController controller) {
                   children: [
                     const Icon(Icons.device_hub, color: Color(0xFF3B82F6), size: 16),
                     const SizedBox(width: 8),
-                    Text(controller, style: const TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            )
-          ).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer', style: TextStyle(color: Color(0xFF3B82F6))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              _showAddControllerDialog();
-            },
-            child: const Text('Ajouter'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddControllerDialog() {
-    final TextEditingController newController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Ajouter Contrôleur', style: TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: newController,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'Ex: CTRL-04',
-            hintStyle: TextStyle(color: Colors.white54),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF3B82F6)),
-            ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF3B82F6)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
-            onPressed: () {
-              if (newController.text.isNotEmpty) {
-                final currentSettings = ref.read(settingsProvider);
-                final newList = [...currentSettings.controllerNumbers, newController.text];
-                ref.read(settingsProvider.notifier).updateControllerNumbers(newList);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Ajouter'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showQRCodeDialog() {
-    final settings = ref.read(settingsProvider);
-    final qrData = {
-      'kit': settings.kitNumber,
-      'controllers': settings.controllerNumbers,
-      'status': settings.systemStatus,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('QR Code Configuration', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.qr_code, size: 80, color: Colors.black),
-                    SizedBox(height: 8),
-                    Text(
-                      'QR CODE',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        relay.name ?? "",
+                        style: const TextStyle(color: Colors.white),
                       ),
+                    ),
+                    // Bouton édition
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.yellowAccent, size: 20),
+                      onPressed: () {
+                        final TextEditingController editController = TextEditingController(text: relay.name);
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFF1E293B),
+                            title: const Text('Modifier le nom', style: TextStyle(color: Colors.white)),
+                            content: TextField(
+                              controller: editController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Nouveau nom du relais',
+                                hintStyle: TextStyle(color: Colors.white54),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                                ),
+                                focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                                ),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3B82F6),
+                                ),
+                                onPressed: () {
+                                  final newName = editController.text.trim();
+                                  if (newName.isNotEmpty) {
+                                    relaysData.updateRelay(
+                                      RelayModel(id: relay.id, name: newName, amperage: relay.amperage, isActive: relay.isActive),
+                                    );
+                                  }
+                                  Navigator.pop(context);
+                                },
+                                child: const Text('Valider'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    // Bouton suppression
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                      onPressed: () {
+                        // TODO: Appeler la méthode de suppression
+                        // relaysData.deleteRelay(relay.id);
+                      },
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Configuration système générée',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
+            );
+          }).toList(),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Fermer', style: TextStyle(color: Color(0xFF3B82F6))),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3B82F6),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            onPressed: () {
-              // Logique de partage du QR Code
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('QR Code sauvegardé!'),
-                  backgroundColor: Color(0xFF10B981),
-                ),
-              );
+          onPressed: () {
+            Navigator.pop(context);
+            _showAddControllerDialog();
+          },
+          child: const Text('Ajouter'),
+        ),
+      ],
+    ),
+  );
+}
+
+
+
+  void _showAddControllerDialog() {
+    final relays_data = ref.watch(relaysProvider);
+  final TextEditingController nameController = TextEditingController();
+  String selectedAmperage = '4'; // valeur par défaut
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text('Ajouter Relais', style: TextStyle(color: Colors.white)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Nom du relais
+          TextField(
+            controller: nameController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Ex: Salon',
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Amperage
+          DropdownButtonFormField<String>(
+            value: selectedAmperage,
+            dropdownColor: const Color(0xFF1E293B),
+            decoration: const InputDecoration(
+              labelText: 'Amperage (A)',
+              labelStyle: TextStyle(color: Colors.white70),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+            style: const TextStyle(color: Colors.white),
+            items: ['4', '8','12']
+                .map((amp) => DropdownMenuItem(
+                      value: amp,
+                      child: Text(amp, style: const TextStyle(color: Colors.white)),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) selectedAmperage = value;
             },
-            child: const Text('Partager'),
           ),
         ],
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+          onPressed: () {
+            final name = nameController.text.trim();
+            if (name.isNotEmpty && selectedAmperage.isNotEmpty) {
+              // Appel de la méthode d'ajout
+              relays_data.addRelay(RelayModel(amperage: selectedAmperage as int,name: name));
+              addRelay(name: name, amperage: selectedAmperage);
+
+              Navigator.pop(context);
+            }
+          },
+          child: const Text('Ajouter'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Exemple de méthode addRelay (à adapter selon ton ViewModel ou repository)
+void addRelay({required String name, required String amperage}) {
+  print('Ajouter relais: $name, $amperage');
+  // Ici tu peux appeler ton ViewModel, par ex:
+  // ref.read(relaysProvider).addRelay(RelayModel(name: name, amperage: amperage, isActive: false));
+}
+
+
+
 
   void _showSystemStatus() {
-    final settings = ref.read(settingsProvider);
+    final kit_data = ref.watch(kitProvider);
+    final relay_data=ref.watch(relaysProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1316,12 +1439,12 @@ void _showEditDialog( String field, TextEditingController controller) {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: settings.systemStatus 
+                color: kit_data.kits.isNotEmpty 
                     ? const Color(0xFF10B981).withOpacity(0.2)
                     : const Color(0xFFEF4444).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: settings.systemStatus 
+                  color: kit_data.kits.isNotEmpty
                       ? const Color(0xFF10B981)
                       : const Color(0xFFEF4444),
                 ),
@@ -1329,26 +1452,26 @@ void _showEditDialog( String field, TextEditingController controller) {
               child: Column(
                 children: [
                   Icon(
-                    settings.systemStatus ? Icons.check_circle : Icons.error,
-                    color: settings.systemStatus 
+                    kit_data.kits.isNotEmpty ? Icons.check_circle : Icons.error,
+                    color: kit_data.kits.isNotEmpty 
                         ? const Color(0xFF10B981)
                         : const Color(0xFFEF4444),
                     size: 48,
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    settings.systemStatus ? 'OPÉRATIONNEL' : 'ARRÊTÉ',
+                    kit_data.kits.isNotEmpty ? 'OPÉRATIONNEL' : 'ARRÊTÉ',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: settings.systemStatus 
+                      color: kit_data.kits.isNotEmpty
                           ? const Color(0xFF10B981)
                           : const Color(0xFFEF4444),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    settings.systemStatus 
+                    kit_data.kits.isNotEmpty
                         ? 'Tous les systèmes fonctionnent normalement'
                         : 'Le système nécessite une attention',
                     textAlign: TextAlign.center,
@@ -1358,9 +1481,8 @@ void _showEditDialog( String field, TextEditingController controller) {
               ),
             ),
             const SizedBox(height: 16),
-            _buildStatusInfo('Kit:', settings.kitNumber),
-            _buildStatusInfo('Contrôleurs:', '${settings.controllerNumbers.length} actifs'),
-            _buildStatusInfo('Dernière sync:', 'Il y a 2 minutes'),
+            _buildStatusInfo('Kit:', kit_data.kits.first.kitNumber??'Non configuré'),
+            _buildStatusInfo('Etats Relais:', '${relay_data.activeRelaysCount} actifs'),
           ],
         ),
         actions: [
@@ -1368,15 +1490,7 @@ void _showEditDialog( String field, TextEditingController controller) {
             onPressed: () => Navigator.pop(context),
             child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
           ),
-          if (!settings.systemStatus)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-              onPressed: () {
-                // Logique de redémarrage du système
-                Navigator.pop(context);
-              },
-              child: const Text('Redémarrer'),
-            ),
+           
         ],
       ),
     );

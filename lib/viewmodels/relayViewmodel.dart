@@ -99,4 +99,13 @@ class RelayViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  int get activeRelaysCount {
+    return _relays.where((r) => r.isActive).length;
+  }
+
+  /// Retourne le nombre de relais inactifs
+  int get inactiveRelaysCount {
+    return _relays.where((r) => !r.isActive).length;
+  }
 }

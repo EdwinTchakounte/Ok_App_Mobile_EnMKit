@@ -1,5 +1,6 @@
 import 'package:enmkit/core/db_service.dart';
 import 'package:enmkit/models/relay_model.dart';
+import 'package:sqflite/sqflite.dart';
 
 class RelayRepository {
   final DBService _dbService;
@@ -54,5 +55,23 @@ class RelayRepository {
   Future<void> clearRelays() async {
     final db = await _dbService.database;
     await db.delete('relays');
+  }
+
+  /// Retourne le nombre de relais actifs
+  Future<int> getActiveRelaysCount() async {
+    final db = await _dbService.database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM relays WHERE isActive = 1',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  /// Retourne le nombre de relais inactifs
+  Future<int> getInactiveRelaysCount() async {
+    final db = await _dbService.database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM relays WHERE isActive = 0',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 }

@@ -39,9 +39,14 @@ dependencies:
   sms_sender_background: ^1.0.6
   readsms:
     path: ./local_packages/readsms
-  pretty_qr_code: ^3.5.0
   curved_navigation_bar: ^1.0.6
   fl_chart: ^1.1.0
+
+  screenshot: ^3.0.0   # version null safe
+  pretty_qr_code: ^3.5.0 
+  share_plus: 11.0.0
+
+
 
 dev_dependencies:
   flutter_test:
