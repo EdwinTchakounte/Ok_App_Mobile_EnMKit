@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+}
+
+group 'com.ayush783.readsms'
+version '1.0-SNAPSHOT'
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+android {
+    namespace "com.enmkit.readsms"   // ✅ Ajout obligatoire du namespace
+    compileSdkVersion 33             // ⚡ Mets à jour pour être compatible avec Flutter récent
+
+    defaultConfig {
+        minSdkVersion 21             // ⚡ Flutter >=3.16 demande minSdk 21
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+}
+
+dependencies {
+    implementation 'androidx.annotation:annotation:1.3.0'
+}
