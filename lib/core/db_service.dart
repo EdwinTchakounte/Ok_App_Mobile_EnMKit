@@ -79,7 +79,7 @@ class DBService {
 
   await db.execute('''
     CREATE TABLE relays(
-      id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       isActive INTEGER,
       amperage INTEGER

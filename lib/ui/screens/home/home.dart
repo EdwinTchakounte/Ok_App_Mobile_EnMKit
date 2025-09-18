@@ -1,4 +1,7 @@
 
+import 'package:enmkit/models/kit_model.dart';
+import 'package:enmkit/providers.dart';
+import 'package:enmkit/ui/screens/relays_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -565,132 +568,132 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// ÉCRAN DES RELAIS ÉPURÉ
-class RelaysScreen extends ConsumerWidget {
-  const RelaysScreen({super.key});
+// // ÉCRAN DES RELAIS ÉPURÉ
+// class RelaysScreen extends ConsumerWidget {
+//   const RelaysScreen({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final relays = ref.watch(relaysProvider);
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final relays = ref.watch(relaysProvider);
     
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: relays.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildCleanRelayCard(relays[index], ref),
-            ),
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
-    );
-  }
+//     return SingleChildScrollView(
+//       physics: const BouncingScrollPhysics(),
+//       child: Padding(
+//         padding: const EdgeInsets.all(24),
+//         child: Column(
+//           children: [
+//             const SizedBox(height: 20),
+//             ListView.separated(
+//               shrinkWrap: true,
+//               physics: const NeverScrollableScrollPhysics(),
+//               itemCount: relays.length,
+//               separatorBuilder: (context, index) => const SizedBox(height: 16),
+//               itemBuilder: (context, index) => _buildCleanRelayCard(relays[index], ref),
+//             ),
+//             const SizedBox(height: 100),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
 
-  Widget _buildCleanRelayCard(Relay relay, WidgetRef ref) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: relay.isOn 
-              ? const Color(0xFF10B981).withOpacity(0.3)
-              : const Color(0xFFE2E8F0),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: relay.isOn 
-                ? const Color(0xFF10B981).withOpacity(0.1)
-                : Colors.black.withOpacity(0.04),
-            blurRadius: relay.isOn ? 15 : 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: relay.isOn 
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              relay.isOn ? Icons.power : Icons.power_off,
-              color: relay.isOn ? Colors.white : const Color(0xFF64748B),
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  relay.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'ID: ${relay.id} • ${relay.amperage}A',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: relay.isOn 
-                        ? const Color(0xFF10B981).withOpacity(0.1)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    relay.isOn ? 'ACTIVÉ' : 'DÉSACTIVÉ',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: relay.isOn 
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: relay.isOn,
-            onChanged: (value) {
-              ref.read(relaysProvider.notifier).toggleRelay(relay.id);
-            },
-            activeColor: const Color(0xFF10B981),
-            activeTrackColor: const Color(0xFF10B981).withOpacity(0.3),
-            inactiveThumbColor: const Color(0xFF94A3B8),
-            inactiveTrackColor: const Color(0xFFE2E8F0),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//   Widget _buildCleanRelayCard(Relay relay, WidgetRef ref) {
+//     return Container(
+//       padding: const EdgeInsets.all(24),
+//       decoration: BoxDecoration(
+//         color: Colors.white,
+//         borderRadius: BorderRadius.circular(16),
+//         border: Border.all(
+//           color: relay.isOn 
+//               ? const Color(0xFF10B981).withOpacity(0.3)
+//               : const Color(0xFFE2E8F0),
+//         ),
+//         boxShadow: [
+//           BoxShadow(
+//             color: relay.isOn 
+//                 ? const Color(0xFF10B981).withOpacity(0.1)
+//                 : Colors.black.withOpacity(0.04),
+//             blurRadius: relay.isOn ? 15 : 10,
+//             offset: const Offset(0, 4),
+//           ),
+//         ],
+//       ),
+//       child: Row(
+//         children: [
+//           Container(
+//             width: 60,
+//             height: 60,
+//             decoration: BoxDecoration(
+//               color: relay.isOn 
+//                   ? const Color(0xFF10B981)
+//                   : const Color(0xFFF1F5F9),
+//               borderRadius: BorderRadius.circular(14),
+//             ),
+//             child: Icon(
+//               relay.isOn ? Icons.power : Icons.power_off,
+//               color: relay.isOn ? Colors.white : const Color(0xFF64748B),
+//               size: 26,
+//             ),
+//           ),
+//           const SizedBox(width: 20),
+//           Expanded(
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 Text(
+//                   relay.name,
+//                   style: const TextStyle(
+//                     fontSize: 16,
+//                     fontWeight: FontWeight.bold,
+//                     color: Color(0xFF1E293B),
+//                   ),
+//                 ),
+//                 const SizedBox(height: 4),
+//                 Text(
+//                   'ID: ${relay.id} • ${relay.amperage}A',
+//                   style: const TextStyle(
+//                     fontSize: 12,
+//                     color: Color(0xFF64748B),
+//                   ),
+//                 ),
+//                 const SizedBox(height: 8),
+//                 Container(
+//                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+//                   decoration: BoxDecoration(
+//                     color: relay.isOn 
+//                         ? const Color(0xFF10B981).withOpacity(0.1)
+//                         : const Color(0xFFF1F5F9),
+//                     borderRadius: BorderRadius.circular(12),
+//                   ),
+//                   child: Text(
+//                     relay.isOn ? 'ACTIVÉ' : 'DÉSACTIVÉ',
+//                     style: TextStyle(
+//                       fontSize: 10,
+//                       fontWeight: FontWeight.bold,
+//                       color: relay.isOn 
+//                           ? const Color(0xFF10B981)
+//                           : const Color(0xFF64748B),
+//                     ),
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//           Switch(
+//             value: relay.isOn,
+//             onChanged: (value) {
+//               ref.read(relaysProvider.notifier).toggleRelay(relay.id);
+//             },
+//             activeColor: const Color(0xFF10B981),
+//             activeTrackColor: const Color(0xFF10B981).withOpacity(0.3),
+//             inactiveThumbColor: const Color(0xFF94A3B8),
+//             inactiveTrackColor: const Color(0xFFE2E8F0),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 // ÉCRAN DE CONSOMMATION ÉPURÉ
 class ConsumptionScreen extends ConsumerWidget {
@@ -1001,93 +1004,139 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingCard(String title, String subtitle, IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showEditDialog(String field, TextEditingController controller) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: Text('Modifier $field', style: const TextStyle(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Entrer nouveau $field',
-            hintStyle: const TextStyle(color: Colors.white54),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF3B82F6)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (field == 'Kit') {
-                ref.read(settingsProvider.notifier).updateKitNumber(controller.text);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Sauvegarder'),
+ Widget _buildSettingCard(
+    String title, String subtitle, IconData icon, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(vertical: 8), // espacement entre cartes
+      decoration: BoxDecoration(
+        color: Colors.grey[100], // fond clair pour contraster avec le blanc du background
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 4),
           ),
         ],
       ),
-    );
-  }
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87, // texte foncé pour le contraste
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54, // texte secondaire plus léger
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios,
+            color: Colors.black38, // flèche discrète mais visible
+            size: 16,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+void _showEditDialog( String field, TextEditingController controller) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: Text(
+        'Modifier $field',
+        style: const TextStyle(color: Colors.white),
+      ),
+      content: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Entrer nouveau $field',
+          hintStyle: const TextStyle(color: Colors.white54),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF3B82F6)),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Annuler',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (field == 'Kit') {
+              final kitVM = ref.read(kitProvider.notifier);
+              final newKitNumber = controller.text.trim();
+
+              if (newKitNumber.isNotEmpty) {
+                try {
+                  // Vérifie s’il existe déjà un kit
+                  final existingKit = await kitVM.getKitNumber();
+                  if (existingKit != null) {
+                    // Mettre à jour le kit existant
+                    await kitVM.updateKit(
+                      KitModel(kitNumber: newKitNumber),
+                    );
+                  } else {
+                    // Ajouter un nouveau kit
+                    await kitVM.addKit(
+                      KitModel(kitNumber: newKitNumber),
+                    );
+                  }
+                  // Rafraîchir la liste
+                  await kitVM.fetchKits();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Erreur lors de la mise à jour : $e")),
+                  );
+                }
+              }
+            }
+            Navigator.pop(context);
+          },
+          child: const Text('Sauvegarder'),
+        ),
+      ],
+    ),
+  );
+}
+
 
   void _showControllersDialog() {
     final settings = ref.read(settingsProvider);

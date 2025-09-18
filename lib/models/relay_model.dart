@@ -1,5 +1,5 @@
 class RelayModel {
-  String? id;
+  int? id;
   String? name;
   bool isActive;
   int amperage;
