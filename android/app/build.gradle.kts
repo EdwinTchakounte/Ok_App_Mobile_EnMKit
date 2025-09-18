@@ -6,9 +6,9 @@ plugins {
 }
 
 android {
-    namespace = "com.enmkit.readsms"
+    namespace = "com.example.enmkit"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "29.0.14033849"
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
