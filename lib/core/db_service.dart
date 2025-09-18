@@ -45,7 +45,7 @@ class DBService {
     await db.execute('''
       CREATE TABLE allowed_numbers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        phoneNumber TEXT NOT NULL,
+        phoneNumber TEXT NOT NULL
       );
     ''');
 
@@ -82,7 +82,7 @@ class DBService {
       id TEXT PRIMARY KEY,
       name TEXT,
       isActive INTEGER,
-      amperage INTEGER,
+      amperage INTEGER
     )
   ''');
 
