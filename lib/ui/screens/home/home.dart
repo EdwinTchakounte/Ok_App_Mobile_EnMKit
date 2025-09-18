@@ -572,7 +572,7 @@ class RelaysScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final relays = ref.watch(relaysProvider);
-    
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -607,7 +607,7 @@ class RelaysScreen extends ConsumerWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: relay.isOn 
+            color: relay.isOn
                 ? const Color(0xFF10B981).withOpacity(0.1)
                 : Colors.black.withOpacity(0.04),
             blurRadius: relay.isOn ? 15 : 10,
@@ -621,7 +621,7 @@ class RelaysScreen extends ConsumerWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: relay.isOn 
+              color: relay.isOn
                   ? const Color(0xFF10B981)
                   : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(14),
@@ -657,7 +657,7 @@ class RelaysScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: relay.isOn 
+                    color: relay.isOn
                         ? const Color(0xFF10B981).withOpacity(0.1)
                         : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(12),
@@ -667,7 +667,7 @@ class RelaysScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: relay.isOn 
+                      color: relay.isOn
                           ? const Color(0xFF10B981)
                           : const Color(0xFF64748B),
                     ),
@@ -681,7 +681,7 @@ class RelaysScreen extends ConsumerWidget {
             onChanged: (value) {
               ref.read(relaysProvider.notifier).toggleRelay(relay.id);
             },
-            activeColor: const Color(0xFF10B981),
+            activeThumbColor: const Color(0xFF10B981),
             activeTrackColor: const Color(0xFF10B981).withOpacity(0.3),
             inactiveThumbColor: const Color(0xFF94A3B8),
             inactiveTrackColor: const Color(0xFFE2E8F0),
@@ -852,7 +852,7 @@ class ConsumptionScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          '${consumption.value.toStringAsFixed(1)}',
+                          consumption.value.toStringAsFixed(1),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,

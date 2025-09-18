@@ -1,10 +1,6 @@
 import 'dart:convert';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:flutter/material.dart';
-
-import '../models/kit_model.dart';
-import '../models/relay_model.dart';
-import '../models/allowed_number_model.dart';
 import '../repositories/kit_repository.dart';
 import '../repositories/relay_repository.dart';
 import '../repositories/allowed_number_repository.dart';

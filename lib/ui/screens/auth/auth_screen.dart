@@ -293,7 +293,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       builder: (context, child) {
         return Transform.scale(
           scale: _pulseAnimation.value,
-          child: Container(
+          child: SizedBox(
             width: 80,
             height: 80,
             child: Image.asset(
