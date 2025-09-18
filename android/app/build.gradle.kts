@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.enmkit"
+    namespace = "com.enmkit.readsms"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "29.0.14033849"
 
