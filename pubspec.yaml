@@ -37,7 +37,8 @@ dependencies:
   sqflite: ^2.4.2
   flutter_riverpod: ^2.6.1
   sms_sender_background: ^1.0.6
-  readsms: ^0.2.0+4
+  readsms:
+    path: ./local_packages/readsms
   pretty_qr_code: ^3.5.0
   curved_navigation_bar: ^1.0.6
   fl_chart: ^1.1.0
