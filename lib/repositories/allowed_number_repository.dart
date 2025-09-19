@@ -44,4 +44,14 @@ class AllowedNumberRepository {
     final db = await _dbService.database;
     await db.delete('allowed_numbers');
   }
+
+  Future<void> replaceAll(List<dynamic> numbersMaps) async {
+    final db = await _dbService.database;
+    final batch = db.batch();
+    batch.delete('allowed_numbers');
+    for (final m in numbersMaps) {
+      batch.insert('allowed_numbers', m as Map<String, dynamic>);
+    }
+    await batch.commit(noResult: true);
+  }
 }

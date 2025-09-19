@@ -2,6 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+import 'package:enmkit/providers.dart';
+import 'package:enmkit/models/relay_model.dart' as models;
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'package:enmkit/core/config_transfer_service.dart';
+import 'package:enmkit/ui/screens/common/qr_scan_screen.dart';
+// Admin UI déplacé dans Dashboard; suppression du lien direct depuis Settings
 
 // Modèles de données
 class Relay {
@@ -164,11 +170,20 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
             child: PageView(
               controller: _pageController,
               onPageChanged: (index) => setState(() => _currentIndex = index),
-              children: const [
-                HomeScreen(),
-                RelaysScreen(),
-                ConsumptionScreen(),
-                SettingsScreen(),
+              children: [
+                HomeScreen(
+                  onNavigateTab: (int index) {
+                    setState(() => _currentIndex = index);
+                    _pageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.easeInOutCubic,
+                    );
+                  },
+                ),
+                const RelaysScreen(),
+                const ConsumptionScreen(),
+                const SettingsScreen(),
               ],
             ),
           ),
@@ -282,7 +297,8 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
 
 // ÉCRAN D'ACCUEIL ÉPURÉ
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  final void Function(int index) onNavigateTab;
+  const HomeScreen({super.key, required this.onNavigateTab});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -293,11 +309,11 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            _buildWelcomeCard(),
+            _buildWelcomeCard(ref),
             const SizedBox(height: 24),
-            _buildQuickStats(),
+            _buildQuickStats(ref),
             const SizedBox(height: 24),
-            _buildQuickActions(),
+            _buildQuickActions(ref),
             const SizedBox(height: 24),
             _buildSystemStatus(),
             const SizedBox(height: 100),
@@ -307,7 +323,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWelcomeCard() {
+  Widget _buildWelcomeCard(WidgetRef ref) {
+    final relaysAsync = ref.watch(dbRelaysProvider);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(32),
@@ -361,13 +378,27 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildMiniStat('3', 'Relais', Icons.power),
-              _buildMiniStat('24.7', 'kWh', Icons.flash_on),
-              _buildMiniStat('98%', 'Statut', Icons.check_circle),
-            ],
+          relaysAsync.when(
+            data: (relays) => Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildMiniStat(relays.length.toString(), 'Relais', Icons.power),
+                _buildMiniStat('24.7', 'kWh', Icons.flash_on),
+                _buildMiniStat('98%', 'Statut', Icons.check_circle),
+              ],
+            ),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            error: (_, __) => Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildMiniStat('-', 'Relais', Icons.power),
+                _buildMiniStat('24.7', 'kWh', Icons.flash_on),
+                _buildMiniStat('98%', 'Statut', Icons.check_circle),
+              ],
+            ),
           ),
         ],
       ),
@@ -398,10 +429,17 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickStats() {
+  Widget _buildQuickStats(WidgetRef ref) {
+    final relaysAsync = ref.watch(dbRelaysProvider);
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Actifs', '3 Relais', Icons.electrical_services, const Color(0xFF10B981))),
+        Expanded(
+          child: relaysAsync.when(
+            data: (relays) => _buildStatCard('Actifs', '${relays.length} Relais', Icons.electrical_services, const Color(0xFF10B981)),
+            loading: () => _buildStatCard('Actifs', '...', Icons.electrical_services, const Color(0xFF10B981)),
+            error: (_, __) => _buildStatCard('Actifs', '-', Icons.electrical_services, const Color(0xFF10B981)),
+          ),
+        ),
         const SizedBox(width: 16),
         Expanded(child: _buildStatCard('Puissance', '15.2 kW', Icons.flash_on, const Color(0xFFF59E0B))),
       ],
@@ -454,7 +492,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -469,19 +507,61 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildActionButton('Contrôle', Icons.electrical_services, const Color(0xFF3B82F6))),
+            Expanded(
+              child: _buildActionButton(
+                context: ref.context,
+                title: 'Contrôle',
+                icon: Icons.electrical_services,
+                color: const Color(0xFF3B82F6),
+                onTap: () => onNavigateTab(1),
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildActionButton('Analyse', Icons.analytics, const Color(0xFF10B981))),
+            Expanded(
+              child: _buildActionButton(
+                context: ref.context,
+                title: 'Analyse',
+                icon: Icons.analytics,
+                color: const Color(0xFF10B981),
+                onTap: () => onNavigateTab(2),
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildActionButton('Config', Icons.settings, const Color(0xFF8B5CF6))),
+            Expanded(
+              child: _buildActionButton(
+                context: ref.context,
+                title: 'Config',
+                icon: Icons.settings,
+                color: const Color(0xFF8B5CF6),
+                onTap: () {
+                  final user = ref.read(authProvider).user;
+                  if (user?.isAdmin == true) {
+                    onNavigateTab(3);
+                  } else {
+                    ScaffoldMessenger.of(ref.context).showSnackBar(
+                      const SnackBar(content: Text('Réservé aux administrateurs')),
+                    );
+                  }
+                },
+              ),
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, Color color) {
-    return Container(
+  Widget _buildActionButton({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -508,6 +588,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -571,8 +652,8 @@ class RelaysScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final relays = ref.watch(relaysProvider);
-    
+    final relaysAsync = ref.watch(dbRelaysProvider);
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -580,12 +661,16 @@ class RelaysScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: relays.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildCleanRelayCard(relays[index], ref),
+            relaysAsync.when(
+              data: (relays) => ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: relays.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 16),
+                itemBuilder: (context, index) => _buildCleanRelayCardFromModel(relays[index], ref),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Erreur: $e')),
             ),
             const SizedBox(height: 100),
           ],
@@ -594,6 +679,122 @@ class RelaysScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildCleanRelayCardFromModel(models.RelayModel relay, WidgetRef ref) {
+    final isOn = relay.isActive;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isOn 
+              ? const Color(0xFF10B981).withOpacity(0.3)
+              : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isOn 
+                ? const Color(0xFF10B981).withOpacity(0.1)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: isOn ? 15 : 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: isOn 
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isOn ? Icons.power : Icons.power_off,
+              color: isOn ? Colors.white : const Color(0xFF64748B),
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  relay.name ?? 'Relais',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${relay.id} • ${relay.amperage}A',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOn 
+                        ? const Color(0xFF10B981).withOpacity(0.1)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isOn ? 'ACTIVÉ' : 'DÉSACTIVÉ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isOn 
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: isOn,
+            onChanged: (value) async {
+              final relayRepo = ref.read(relayRepositoryProvider);
+              final sms = ref.read(smsServiceProvider);
+              final updated = models.RelayModel(
+                id: relay.id,
+                name: relay.name,
+                amperage: relay.amperage,
+                isActive: value,
+              );
+              try {
+                // Envoi de la commande au kit
+                await sms.toggleRelay(updated);
+                // Persistance en DB
+                await relayRepo.updateRelayActive(relay.id!, value);
+                // Rafraîchir la liste
+                ref.invalidate(dbRelaysProvider);
+              } catch (e) {
+                ScaffoldMessenger.of(ref.context).showSnackBar(
+                  SnackBar(content: Text('Erreur: $e')),
+                );
+              }
+            },
+            activeColor: const Color(0xFF10B981),
+            activeTrackColor: const Color(0xFF10B981).withOpacity(0.3),
+            inactiveThumbColor: const Color(0xFF94A3B8),
+            inactiveTrackColor: const Color(0xFFE2E8F0),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildCleanRelayCard(Relay relay, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -994,6 +1195,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Icons.qr_code_scanner,
               () => _importQRCode(),
             ),
+            // Entrée Administration retirée ici: accessible depuis Dashboard admin
             const SizedBox(height: 100),
           ],
         ),
@@ -1181,73 +1383,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showQRCodeDialog() {
-    final settings = ref.read(settingsProvider);
-    final qrData = {
-      'kit': settings.kitNumber,
-      'controllers': settings.controllerNumbers,
-      'status': settings.systemStatus,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
+  void _showQRCodeDialog() async {
+    final kitRepo = ref.read(kitRepositoryProvider);
+    final relayRepo = ref.read(relayRepositoryProvider);
+    final allowedRepo = ref.read(allowedNumberRepositoryProvider);
+    final service = ConfigTransferService(
+      kitRepository: kitRepo,
+      relayRepository: relayRepo,
+      allowedNumberRepository: allowedRepo,
+    );
+    final payload = await service.exportConfig();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         title: const Text('QR Code Configuration', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.qr_code, size: 80, color: Colors.black),
-                    SizedBox(height: 8),
-                    Text(
-                      'QR CODE',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+        content: SizedBox(
+          width: 220,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: PrettyQrView.data(
+              data: payload,
+              errorCorrectLevel: QrErrorCorrectLevel.M,
+              decoration: const PrettyQrDecoration(
+                shape: PrettyQrSmoothSymbol(),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Configuration système générée',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-            onPressed: () {
-              // Logique de partage du QR Code
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('QR Code sauvegardé!'),
-                  backgroundColor: Color(0xFF10B981),
-                ),
-              );
-            },
-            child: const Text('Partager'),
           ),
         ],
       ),
@@ -1347,59 +1519,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _importQRCode() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Importer QR Code', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF3B82F6), style: BorderStyle.solid, width: 2),
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner, color: Color(0xFF3B82F6), size: 60),
-                  SizedBox(height: 8),
-                  Text(
-                    'Scanner QR',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Scannez un QR Code de configuration\npour mettre à jour le système',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
-            onPressed: () {
-              // Logique de scan QR Code
-              Navigator.pop(context);
-              _showImportSuccess();
-            },
-            child: const Text('Ouvrir Scanner'),
-          ),
-        ],
-      ),
-    );
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const QrScanScreen()),
+    ).then((value) async {
+      if (value is String && value.isNotEmpty) {
+        try {
+          final service = ConfigTransferService(
+            kitRepository: ref.read(kitRepositoryProvider),
+            relayRepository: ref.read(relayRepositoryProvider),
+            allowedNumberRepository: ref.read(allowedNumberRepositoryProvider),
+          );
+          await service.importConfig(value);
+          ref.invalidate(dbRelaysProvider);
+          _showImportSuccess();
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Import échoué: $e')),
+          );
+        }
+      }
+    });
   }
 
   void _showImportSuccess() {

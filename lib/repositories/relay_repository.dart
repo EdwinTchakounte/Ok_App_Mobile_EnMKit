@@ -40,6 +40,17 @@ class RelayRepository {
     );
   }
 
+  // Mettre à jour uniquement l'état actif
+  Future<void> updateRelayActive(String id, bool isActive) async {
+    final db = await _dbService.database;
+    await db.update(
+      'relays',
+      {'isActive': isActive ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // Supprimer un relais
   Future<void> deleteRelay(String id) async {
     final db = await _dbService.database;

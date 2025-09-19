@@ -97,6 +97,7 @@ class DBService {
    // insertion des 3 relais par défaut
   for (var relay in DefaultData.defaultRelays) {
     await db.insert('relays', {
+      'id': relay['id'],
       'name': relay['name'],
       'isActive': relay['isActive'],
       'amperage': relay['amperage'],

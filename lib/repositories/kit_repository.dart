@@ -26,6 +26,16 @@ class KitRepository {
     );
   }
 
+  Future<void> updateKitFromMap(Map<String, dynamic> map) async {
+    final model = KitModel.fromMap(map);
+    final existing = await getKit();
+    if (existing.isEmpty) {
+      await addKit(model);
+    } else {
+      await updateKit(model);
+    }
+  }
+
   Future<String?> getKitNumber() async {
     final db = await _dbService.database;
     final res = await db.query("kits", limit: 1);

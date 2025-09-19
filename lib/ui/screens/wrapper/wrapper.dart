@@ -1,6 +1,7 @@
 import 'package:enmkit/providers.dart';
 import 'package:enmkit/ui/screens/auth/auth_screen.dart';
 import 'package:enmkit/ui/screens/home/home.dart';
+import 'package:enmkit/ui/screens/auth/dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,8 +19,13 @@ class RootPage extends ConsumerWidget {
       );
     }
 
-    // Si user connecté => HomePage
+    // Si user connecté => selon rôle
     if (authState.user != null) {
+      final user = authState.user!;
+      const forceAdmin = bool.fromEnvironment('FORCE_ADMIN_UI', defaultValue: false);
+      if (user.isAdmin == true || forceAdmin) {
+        return const DashboardScreen();
+      }
       return const MainScreen();
     }
 
