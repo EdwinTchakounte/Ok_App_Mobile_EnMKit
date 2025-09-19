@@ -137,13 +137,13 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
             decoration: BoxDecoration(
               color: const Color(0xFF3B82F6),
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF3B82F6).withOpacity(0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              // boxShadow: [
+              //   BoxShadow(
+              //     color: const Color(0xFF3B82F6).withOpacity(0.25),
+              //     blurRadius: 8,
+              //     offset: const Offset(0, 2),
+              //   ),
+              // ],
             ),
             child: Image.asset(
               'asset/images/logo3.png',
@@ -549,8 +549,9 @@ class ConsumptionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final consumptionVM = ref.watch(consumptionProvider);
-    final lastConsumption = consumptionVM.getLastConsumption();
+
+
+    
 
     
     return SingleChildScrollView(
@@ -575,8 +576,9 @@ class ConsumptionScreen extends ConsumerWidget {
     final kitP=ref.watch(kitProvider);
     final dataKit=kitP.kits.isNotEmpty ? kitP.kits.first : null;
     final lastConsumption = consumptionVM.getLastConsumption();
+    final smsVM = ref.watch(smsListenerProvider);
     final lastConsumptionText = lastConsumption != null
-    ? "${lastConsumption.kwh} kWh"
+    ? smsVM
     : "Aucune donnée";
 
     return Container(
@@ -606,7 +608,7 @@ class ConsumptionScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            lastConsumptionText,
+            lastConsumptionText.toString(),
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,

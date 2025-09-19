@@ -43,7 +43,7 @@ class DBService {
 
     // TABLE AllowedNumbers (relation kit -> numéros autorisés)
     await db.execute('''
-      CREATE TABLE allowed_numbers (
+      CREATE TABLE allowed_numbers  (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         phoneNumber TEXT NOT NULL
       );

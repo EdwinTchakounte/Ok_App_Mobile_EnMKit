@@ -8,6 +8,7 @@ import 'package:enmkit/viewmodels/consumption_viewmodel.dart';
 import 'package:enmkit/viewmodels/kitViewModel.dart';
 import 'package:enmkit/viewmodels/onboarding_vm.dart';
 import 'package:enmkit/viewmodels/relayViewmodel.dart';
+import 'package:enmkit/viewmodels/smsViewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:enmkit/core/db_service.dart';
 import 'package:enmkit/repositories/auth_repository.dart';
@@ -54,4 +55,11 @@ final allowedNumberProvider = ChangeNotifierProvider<AllowedNumberViewModel>((re
   final dbService = DBService(); // Assure-toi qu'il est singleton
   final repo = AllowedNumberRepository(dbService);
   return AllowedNumberViewModel(repo);
+});
+
+
+
+final smsListenerProvider = ChangeNotifierProvider<SmsListenerViewModel>((ref) {
+  final kitNumber = ref.watch(kitProvider).kits.isNotEmpty ? ref.watch(kitProvider).kits.first.kitNumber : null;
+  return SmsListenerViewModel(kit_number: kitNumber);
 });

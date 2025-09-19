@@ -9,7 +9,10 @@ class AllowedNumberViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  AllowedNumberViewModel(this._repository);
+  AllowedNumberViewModel(this._repository) {
+    // 👉 Charge les numéros dès l'initialisation
+    fetchAllowedNumbers();
+  }
 
   // Getters
   List<AllowedNumberModel> get allowedNumbers => _allowedNumbers;
@@ -35,8 +38,13 @@ class AllowedNumberViewModel extends ChangeNotifier {
   /// Ajouter un numéro
   Future<void> addAllowedNumber(AllowedNumberModel number) async {
     try {
-      await _repository.addNumber(number);
-      _allowedNumbers.add(number);
+      final id = await _repository.addNumber(number);
+
+      // 🔑 On récupère l'ID généré par SQLite et on l'affecte
+      _allowedNumbers.add(AllowedNumberModel(
+        phoneNumber: number.phoneNumber,
+      ));
+
       notifyListeners();
     } catch (e) {
       _errorMessage = "Erreur lors de l’ajout : $e";

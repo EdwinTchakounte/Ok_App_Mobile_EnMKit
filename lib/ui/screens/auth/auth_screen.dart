@@ -314,7 +314,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             colors: [Color(0xFF1A365D), Color(0xFF4299E1)],
           ).createShader(bounds),
           child: const Text(
-            'ENMKit',
+            'EnMKit',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
