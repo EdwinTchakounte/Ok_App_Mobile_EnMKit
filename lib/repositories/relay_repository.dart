@@ -42,7 +42,7 @@ class RelayRepository {
   }
 
   // Supprimer un relais
-  Future<void> deleteRelay(String id) async {
+  Future<void> deleteRelay(int id) async {
     final db = await _dbService.database;
     await db.delete(
       'relays',

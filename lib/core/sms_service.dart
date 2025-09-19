@@ -60,7 +60,7 @@ Future<void> toggleRelay(RelayModel relay) async {
   }
 
   /// Définir consommation initiale
-  Future<void> setInitialConsumption(int consInitial) async {
+  Future<void> setInitialConsumption(double consInitial) async {
     await _sendCommand("cons_initial:$consInitial");
   }
 

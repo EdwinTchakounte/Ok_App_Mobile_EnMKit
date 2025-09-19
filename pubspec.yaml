@@ -45,6 +45,8 @@ dependencies:
   screenshot: ^3.0.0   # version null safe
   pretty_qr_code: ^3.5.0 
   share_plus: 11.0.0
+  mobile_scanner: ^7.0.1
+  image_picker: ^1.2.0
 
 
 

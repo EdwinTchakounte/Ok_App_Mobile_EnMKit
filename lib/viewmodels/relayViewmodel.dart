@@ -77,7 +77,7 @@ class RelayViewModel extends ChangeNotifier {
   }
 
   /// Supprimer un relais
-  Future<void> deleteRelay(String id) async {
+  Future<void> deleteRelay(int id) async {
     await _repository.deleteRelay(id);
     _relays.removeWhere((r) => r.id == id);
     notifyListeners();

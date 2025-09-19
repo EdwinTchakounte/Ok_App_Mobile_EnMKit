@@ -1,5 +1,6 @@
 
 import 'package:enmkit/core/db_service.dart';
+import 'package:enmkit/core/qr_generate_database_service.dart';
 import 'package:enmkit/core/qr_service.dart';
 import 'package:enmkit/core/sms_service.dart';
 import 'package:enmkit/models/allowed_number_model.dart';
@@ -15,7 +16,12 @@ import 'package:enmkit/viewmodels/relayViewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+ import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 
+final MobileScannerController _scannerController = MobileScannerController();
 // Modèles de données
 class Relay {
   final String id;
@@ -37,45 +43,6 @@ class ConsumptionData {
 
   ConsumptionData({required this.time, required this.value});
 }
-
-// class SystemSettings {
-  
-//   String kitNumber;
-//   List<String> controllerNumbers;
-//   bool systemStatus;
-
-//   SystemSettings({
-//     this.kitNumber = "",
-//     this.controllerNumbers = const ["CTRL-01", "CTRL-02", "CTRL-03"],
-//     this.systemStatus = true,
-//   });
-// }
-
-
-// final settingsProvider = StateNotifierProvider<SettingsNotifier, SystemSettings>((ref) {
-//   return SettingsNotifier();
-// });
-
-
-// class SettingsNotifier extends StateNotifier<SystemSettings> {
-//   SettingsNotifier() : super(SystemSettings());
-
-//   void updateKitNumber(String newNumber) {
-//     state = SystemSettings(
-//       kitNumber: newNumber,
-//       controllerNumbers: state.controllerNumbers,
-//       systemStatus: state.systemStatus,
-//     );
-//   }
-
-//   void updateControllerNumbers(List<String> newNumbers) {
-//     state = SystemSettings(
-//       kitNumber: state.kitNumber,
-//       controllerNumbers: newNumbers,
-//       systemStatus: state.systemStatus,
-//     );
-//   }
-// }
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -179,9 +146,9 @@ class _MainScreenState extends ConsumerState<MainScreen> with TickerProviderStat
               ],
             ),
             child: Image.asset(
-              'asset/images/logo.png',
+              'asset/images/logo3.png',
               width: 24,
-              height: 24,
+              height: 30,
             ),
           ),
           const SizedBox(width: 12),
@@ -330,7 +297,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Bienvenue sur ENMKit',
+            'Bienvenue sur EnMKit',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -351,8 +318,14 @@ class HomeScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              
               _buildMiniStat('${total_relay}', 'Relais', Icons.power),
-              _buildMiniStat('${consumption.getLastConsumption()}', 'kWh', Icons.flash_on),
+              _buildMiniStat(
+  consumption.getLastConsumption()?.toString() ?? 'Pas de données',
+  'kWh',
+  Icons.flash_on,
+),
+
               _buildMiniStat('98%', 'Statut', Icons.check_circle),
             ],
           ),
@@ -841,6 +814,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final kit_data = ref.watch(kitProvider);
+    final user_data=ref.watch(authProvider).user;
     final relays_data = ref.watch(relaysProvider);
     final dbService = DBService();
       final qrService = QrService(
@@ -850,12 +824,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
     
     return SingleChildScrollView(
+      
       physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             const SizedBox(height: 20),
+            if(!user_data!.isAdmin)     
             _buildSettingCard(
               'Numéro du Kit',
               '${kit_data.kits.isNotEmpty ? kit_data.kits.first.kitNumber : "Non configuré"}',
@@ -863,6 +839,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               () => _showEditDialog('Kit', _kitController),
             ),
             const SizedBox(height: 16),
+            if(user_data!.isAdmin) 
             _buildSettingCard(
               'Relais Configurés',
               '${relays_data.relays.length} configurés',
@@ -870,6 +847,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               () => _showControllersDialog(ref),
             ),
             const SizedBox(height: 16),
+            if(!user_data!.isAdmin) 
             _buildSettingCard(
               'Générer QR Code',
               'Configuration système',
@@ -881,6 +859,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),),
             ),
             const SizedBox(height: 16),
+            if(!user_data!.isAdmin) 
             _buildSettingCard(
               'État Système',
               kit_data.kits.isNotEmpty ? 'Opérationnel' : 'Arrêté',
@@ -888,24 +867,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               () => _showSystemStatus(),
             ),
             const SizedBox(height: 16),
-
+            if(!user_data!.isAdmin) 
             _buildSettingCard(
               'Numéros Autorisés',
               'à controler le Kit',
-              Icons.qr_code_scanner,
+              Icons.phone_android,
               () => _showAllowedNumbersDialog(),
             ),
-
+            if(user_data!.isAdmin) 
             _buildSettingCard(
               'Paramètres Compteurs',
               'à definir ici',
-              Icons.qr_code_scanner,
+              Icons.settings,
               () => _showPulseAndConsumptionDialog(),
             ),
             
             
 
   const SizedBox(height: 16),
+          if(!user_data!.isAdmin) 
             _buildSettingCard(
               'Importer QR Code',
               'Mise à jour config',
@@ -998,7 +978,7 @@ void _showEditDialog( String field, TextEditingController controller) {
         controller: controller,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          hintText: 'Entrer nouveau $field',
+          hintText: 'Entrer le Numero $field',
           hintStyle: const TextStyle(color: Colors.white54),
           enabledBorder: const UnderlineInputBorder(
             borderSide: BorderSide(color: Color(0xFF3B82F6)),
@@ -1225,7 +1205,7 @@ void _showControllersDialog(WidgetRef ref) {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: const Color(0xFF1E293B),
-      title: const Text('Contrôleurs', style: TextStyle(color: Colors.white)),
+      title: const Text('Relais', style: TextStyle(color: Colors.white)),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -1289,6 +1269,12 @@ void _showControllersDialog(WidgetRef ref) {
                                       RelayModel(id: relay.id, name: newName, amperage: relay.amperage, isActive: relay.isActive),
                                     );
                                   }
+                                  SnackBar snackBar = const SnackBar(
+                                    content: Text('Nom du relais mis à jour', style: TextStyle(color: Colors.white)),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 2),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
                                   Navigator.pop(context);
                                 },
                                 child: const Text('Valider'),
@@ -1302,8 +1288,12 @@ void _showControllersDialog(WidgetRef ref) {
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
                       onPressed: () {
-                        // TODO: Appeler la méthode de suppression
-                        // relaysData.deleteRelay(relay.id);
+                         relaysData.deleteRelay(relay.id!);
+                         SnackBar snackBar = const SnackBar(
+                          content: Text('Relais supprimé', style: TextStyle(color: Colors.white)),
+                          backgroundColor: Colors.redAccent,
+                          duration: Duration(seconds: 2),);
+                          ScaffoldMessenger.of(context).showSnackBar(snackBar);
                       },
                     ),
                   ],
@@ -1402,7 +1392,7 @@ void _showControllersDialog(WidgetRef ref) {
             final name = nameController.text.trim();
             if (name.isNotEmpty && selectedAmperage.isNotEmpty) {
               // Appel de la méthode d'ajout
-              relays_data.addRelay(RelayModel(amperage: selectedAmperage as int,name: name));
+              relays_data.addRelay(RelayModel(amperage: int.parse(selectedAmperage),name: name));
               addRelay(name: name, amperage: selectedAmperage);
 
               Navigator.pop(context);
@@ -1428,6 +1418,9 @@ void addRelay({required String name, required String amperage}) {
   void _showSystemStatus() {
     final kit_data = ref.watch(kitProvider);
     final relay_data=ref.watch(relaysProvider);
+    final user_data=ref.watch(authProvider).user;
+    final numero_allows=ref.watch(allowedNumberProvider);
+    final sms_service=SmsService(KitRepository(DBService()));
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1481,14 +1474,43 @@ void addRelay({required String name, required String amperage}) {
               ),
             ),
             const SizedBox(height: 16),
-            _buildStatusInfo('Kit:', kit_data.kits.first.kitNumber??'Non configuré'),
+            _buildStatusInfo('Numero Kit:', kit_data.kits.first.kitNumber??'Non configuré'),
             _buildStatusInfo('Etats Relais:', '${relay_data.activeRelaysCount} actifs'),
+            _buildStatusInfo('Consommation Initiale:', '${kit_data.kits.first.initialConsumption??0} kWh'),
+            _buildStatusInfo('Pulsation :', '${kit_data.kits.first.pulseCount??0}'),
+            _buildStatusInfo('Utilisateurs Autorisés:', '${numero_allows.allowedNumbers.length} numéros'),
+            _buildStatusInfo('numero 1:', '${numero_allows.allowedNumbers.isNotEmpty ? numero_allows.allowedNumbers.first.phoneNumber : "Non configuré"}'),
+            _buildStatusInfo('numero 2:', '${numero_allows.allowedNumbers.length>1 ? numero_allows.allowedNumbers[1].phoneNumber : "Non configuré"}'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+          ),
+
+           TextButton(
+            onPressed: () {
+              SnackBar snackBar = const SnackBar(
+                content: Text('Parametrage en Cours de Synchronisation', style: TextStyle(color: Colors.white)),
+                backgroundColor: Color(0xFF3B82F6),
+                duration: Duration(seconds: 2),);
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                 sms_service.setPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
+                 if(numero_allows.allowedNumbers.length>1){
+                  sms_service.setPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
+                 }
+                 sms_service.setInitialConsumption(kit_data.kits.first.initialConsumption??0);
+
+                 sms_service.setPulsation(kit_data.kits.first.pulseCount??0);
+                 SnackBar snackBar2 = const SnackBar(
+                content: Text('Parametrage terminé', style: TextStyle(color: Colors.white)),
+                backgroundColor: Color(0xFF3B82F6),
+                duration: Duration(seconds: 2),);
+                ScaffoldMessenger.of(context).showSnackBar(snackBar2);
+               Navigator.pop(context);
+               },
+            child: const Text('Valider', style: TextStyle(color: Colors.white70)),
           ),
            
         ],
@@ -1509,61 +1531,135 @@ void addRelay({required String name, required String amperage}) {
     );
   }
 
-  void _importQRCode() {
-    showDialog(
+
+
+void _importQRCode() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E293B),
+      title: const Text('Importer / Scanner QR Code', style: TextStyle(color: Colors.white)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF3B82F6), width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: MobileScanner(
+                controller: _scannerController,
+                onDetect: (BarcodeCapture capture) {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  if (barcodes.isNotEmpty) {
+                    final String? rawValue = barcodes.first.rawValue;
+                    if (rawValue != null && rawValue.isNotEmpty) {
+                      Navigator.pop(context);
+                      _handleQrData(rawValue);
+                    }
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Scannez ou importez un QR Code de configuration\npour mettre à jour le système',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+        ),
+    TextButton(
+  onPressed: () async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      try {
+        final result = await _scannerController.analyzeImage(image.path);
+
+        if (result != null && result.barcodes.isNotEmpty) {
+          final String? rawValue = result.barcodes.first.rawValue;
+          if (rawValue != null) {
+            Navigator.pop(context);
+            _handleQrData(rawValue);
+          }
+        } else {
+          print("❌ Aucun QR détecté dans l'image");
+        }
+      } catch (e) {
+        print("Erreur import image QR: $e");
+      }
+    }
+  },
+  child: const Text('Importer', style: TextStyle(color: Color(0xFF3B82F6))),
+),
+
+      ],
+    ),
+  );
+}
+
+void _handleQrData(String data) async {
+  try {
+    final decoded = jsonDecode(data);
+    print("✅ Données QR importées : $decoded");
+
+    // Demander confirmation avant écrasement
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text('Importer QR Code', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF3B82F6), style: BorderStyle.solid, width: 2),
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.qr_code_scanner, color: Color(0xFF3B82F6), size: 60),
-                  SizedBox(height: 8),
-                  Text(
-                    'Scanner QR',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Scannez un QR Code de configuration\npour mettre à jour le système',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
+        title: const Text("Confirmation", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "⚠️ Cette action va effacer les données actuelles et les remplacer par celles du QR Code.\n\nEs-tu sûr de vouloir continuer ?",
+          style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Annuler", style: TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
-            onPressed: () {
-              // Logique de scan QR Code
-              Navigator.pop(context);
-              _showImportSuccess();
-            },
-            child: const Text('Ouvrir Scanner'),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF3B82F6)),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Oui, continuer"),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      final regenerator = DatabaseRegenerator(
+        kitRepo: KitRepository(DBService()),
+        relayRepo: RelayRepository(DBService()),
+        allowedRepo: AllowedNumberRepository(DBService()),
+      );
+
+      await regenerator.regenerateFromJson(data);
+
+      _showImportSuccess(); // tu affiches ton succès ici
+    }
+  } catch (e) {
+    print("⚠️ QR brut non JSON : $data");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Format QR invalide")),
+    );
   }
+}
+
+
 
   void _showImportSuccess() {
     showDialog(
