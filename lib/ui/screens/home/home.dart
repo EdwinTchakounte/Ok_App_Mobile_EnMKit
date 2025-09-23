@@ -575,11 +575,8 @@ class ConsumptionScreen extends ConsumerWidget {
     final consumptionVM = ref.watch(consumptionProvider);
     final kitP=ref.watch(kitProvider);
     final dataKit=kitP.kits.isNotEmpty ? kitP.kits.first : null;
-    final lastConsumption = consumptionVM.getLastConsumption();
     final smsVM = ref.watch(smsListenerProvider);
-    final lastConsumptionText = lastConsumption != null
-    ? smsVM
-    : "Aucune donnée";
+    final lastConsumptionText = smsVM.lastSms;
 
     return Container(
       width: double.infinity,
@@ -617,7 +614,7 @@ class ConsumptionScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Dernière Consommation ',
+            'Dernier SMS reçu',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF64748B),

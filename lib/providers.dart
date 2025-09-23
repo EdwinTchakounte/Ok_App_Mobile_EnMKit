@@ -61,5 +61,5 @@ final allowedNumberProvider = ChangeNotifierProvider<AllowedNumberViewModel>((re
 
 final smsListenerProvider = ChangeNotifierProvider<SmsListenerViewModel>((ref) {
   final kitNumber = ref.watch(kitProvider).kits.isNotEmpty ? ref.watch(kitProvider).kits.first.kitNumber : null;
-  return SmsListenerViewModel(kit_number: kitNumber);
+  return SmsListenerViewModel(kitNumber: kitNumber);
 });

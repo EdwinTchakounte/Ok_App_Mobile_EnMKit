@@ -15,8 +15,7 @@ rootProject.allprojects {
 
 android {
     namespace 'com.ayush783.readsms'
-    namespace "com.example.readsms"
-    compileSdkVersion 31
+    compileSdkVersion 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -32,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 21
     }
 }
 

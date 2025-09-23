@@ -1,6 +1,5 @@
 import 'package:enmkit/core/db_service.dart';
 import 'package:enmkit/models/consumption_model.dart';
-import 'package:enmkit/providers.dart';
 import 'package:enmkit/repositories/consumption_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:readsms/readsms.dart';
@@ -9,10 +8,10 @@ import 'package:permission_handler/permission_handler.dart';
 class SmsListenerViewModel extends ChangeNotifier {
 
   final repo_consumption=ConsumptionRepository(DBService());
-  final kit_number;
-  late String trustedSender; // 🔧 Numéro autorisé (peut venir de ta DB)
-  SmsListenerViewModel({required this.kit_number}) {
-    trustedSender = kit_number;
+  final String? kitNumber;
+  late String? trustedSender; // 🔧 Numéro autorisé 
+  SmsListenerViewModel({required this.kitNumber}) {
+    trustedSender = _normalizeNumber(kitNumber);
     _initSmsListener();
   }
   final plugin = Readsms();
@@ -25,7 +24,14 @@ class SmsListenerViewModel extends ChangeNotifier {
       plugin.read();
 
       plugin.smsStream.listen((event) {
-        if (event.sender == trustedSender) {
+        final normalizedSender = _normalizeNumber(event.sender);
+        final normalizedTrusted = trustedSender;
+
+        final isFromTrusted = normalizedTrusted == null
+            ? true
+            : _numbersMatch(normalizedSender, normalizedTrusted);
+
+        if (isFromTrusted) {
           lastSms = "${event.body}";
           _processTrustedSms(event.body ?? "");
         } else {
@@ -37,6 +43,24 @@ class SmsListenerViewModel extends ChangeNotifier {
       lastSms = "❌ Permission SMS refusée";
       notifyListeners();
     }
+  }
+
+  String? _normalizeNumber(String? number) {
+    if (number == null) return null;
+    // Garder uniquement les chiffres
+    final digits = number.replaceAll(RegExp(r'[^0-9]'), '');
+    // Supprimer un 00 initial (format international)
+    final withoutIdd = digits.startsWith('00') ? digits.substring(2) : digits;
+    // Supprimer un 0 local de tête si un indicatif pays est présent
+    return withoutIdd;
+  }
+
+  bool _numbersMatch(String? a, String? b) {
+    if (a == null || b == null) return false;
+    // Compare sur les 8 derniers chiffres pour gérer indicatifs différents
+    final aTail = a.length > 8 ? a.substring(a.length - 8) : a;
+    final bTail = b.length > 8 ? b.substring(b.length - 8) : b;
+    return aTail == bTail;
   }
 
   void _processTrustedSms(String message) {
