@@ -11,6 +11,7 @@ import 'package:enmkit/repositories/allowed_number_repository.dart';
 import 'package:enmkit/repositories/kit_repository.dart';
 import 'package:enmkit/repositories/relay_repository.dart';
 import 'package:enmkit/ui/screens/qr_screen.dart';
+import 'package:enmkit/ui/screens/faq_screen.dart';
 import 'package:enmkit/ui/screens/relays_screen.dart';
 import 'package:enmkit/viewmodels/relayViewmodel.dart';
 import 'package:flutter/material.dart';
@@ -890,6 +891,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'Mise à jour config',
               Icons.qr_code_scanner,
               () => _importQRCode(),
+            ),
+            const SizedBox(height: 16),
+            _buildSettingCard(
+              'FAQ',
+              'Questions fréquentes',
+              Icons.help_outline,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FaqScreen(),
+                ),
+              ),
             ),
             const SizedBox(height: 100),
           ],
