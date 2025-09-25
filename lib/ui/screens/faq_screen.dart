@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:enmkit/ui/screens/faq_account_screen.dart';
+import 'package:enmkit/ui/screens/faq_device_screen.dart';
+import 'package:enmkit/ui/screens/faq_qr_screen.dart';
+import 'package:enmkit/ui/screens/faq_troubleshoot_screen.dart';
 
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
@@ -27,7 +31,14 @@ class FaqScreen extends StatelessWidget {
                 'Compte & Connexion',
                 'Problèmes d\'accès et sécurité',
                 Icons.lock_outline,
-                () {},
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FaqAccountScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               _buildSettingCard(
@@ -35,7 +46,14 @@ class FaqScreen extends StatelessWidget {
                 'Appareil / Kit',
                 'Installation et utilisation du kit',
                 Icons.memory,
-                () {},
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FaqDeviceScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               _buildSettingCard(
@@ -43,7 +61,14 @@ class FaqScreen extends StatelessWidget {
                 'QR & Configuration',
                 'Génération et import du QR code',
                 Icons.qr_code,
-                () {},
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FaqQrScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               _buildSettingCard(
@@ -51,7 +76,14 @@ class FaqScreen extends StatelessWidget {
                 'Dépannage',
                 'Erreurs, pannes et solutions',
                 Icons.build_outlined,
-                () {},
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FaqTroubleshootScreen(),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 32),
             ],
