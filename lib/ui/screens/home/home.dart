@@ -550,11 +550,10 @@ class ConsumptionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
-
-    
-
-    
+    final vm = ref.read(consumptionProvider);
+    if (vm.consumptions.isEmpty) {
+      vm.fetchConsumptions();
+    }
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -577,7 +576,10 @@ class ConsumptionScreen extends ConsumerWidget {
     final kitP=ref.watch(kitProvider);
     final dataKit=kitP.kits.isNotEmpty ? kitP.kits.first : null;
     final smsVM = ref.watch(smsListenerProvider);
-    final lastConsumptionText = smsVM.lastSms;
+    final lastRecord = consumptionVM.getLastConsumption();
+    final lastConsumptionText = lastRecord != null
+        ? "${lastRecord.kwh} kWh"
+        : smsVM.lastSms;
 
     return Container(
       width: double.infinity,
@@ -615,7 +617,7 @@ class ConsumptionScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Dernier SMS reçu',
+            'Dernière consommation',
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF64748B),

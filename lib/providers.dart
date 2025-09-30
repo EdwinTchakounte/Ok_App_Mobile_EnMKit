@@ -46,7 +46,10 @@ final kitProvider = ChangeNotifierProvider<KitViewModel>((ref) {
 final consumptionProvider = ChangeNotifierProvider<ConsumptionViewModel>((ref) {
   final dbService = ref.read(dbServiceProvider);
   final repo = ConsumptionRepository(dbService);
-  return ConsumptionViewModel(repo);
+  // Initialise et charge immédiatement l'historique depuis SQLite
+  final vm = ConsumptionViewModel(repo);
+  vm.fetchConsumptions();
+  return vm;
 });
 
 
@@ -61,5 +64,6 @@ final allowedNumberProvider = ChangeNotifierProvider<AllowedNumberViewModel>((re
 
 final smsListenerProvider = ChangeNotifierProvider<SmsListenerViewModel>((ref) {
   final kitNumber = ref.watch(kitProvider).kits.isNotEmpty ? ref.watch(kitProvider).kits.first.kitNumber : null;
-  return SmsListenerViewModel(kitNumber: kitNumber);
+  final consumptionVm = ref.read(consumptionProvider);
+  return SmsListenerViewModel(kitNumber: kitNumber, consumptionVM: consumptionVm);
 });

@@ -1,6 +1,7 @@
 import 'package:enmkit/core/db_service.dart';
 import 'package:enmkit/models/consumption_model.dart';
 import 'package:enmkit/repositories/consumption_repository.dart';
+import 'package:enmkit/viewmodels/consumption_viewmodel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:readsms/readsms.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,8 +10,9 @@ class SmsListenerViewModel extends ChangeNotifier {
 
   final repo_consumption=ConsumptionRepository(DBService());
   final String? kitNumber;
+  final ConsumptionViewModel? consumptionVM; // Injecté pour mise à jour immédiate UI
   late String? trustedSender; // 🔧 Numéro autorisé 
-  SmsListenerViewModel({required this.kitNumber}) {
+  SmsListenerViewModel({required this.kitNumber, this.consumptionVM}) {
     trustedSender = _normalizeNumber(kitNumber);
     _initSmsListener();
   }
@@ -64,11 +66,27 @@ class SmsListenerViewModel extends ChangeNotifier {
   }
 
   void _processTrustedSms(String message) {
-    // 👉 Logique métier
-      final kwh = double.tryParse(message);
-      if (kwh != null) {
-        repo_consumption.addConsumption(ConsumptionModel(kwh: kwh, timestamp: DateTime.now()));
+    // 👉 Logique métier: extraire une valeur numérique de consommation même si le SMS contient du texte
+    try {
+      final regex = RegExp(r"(\d+[\.,]?\d*)");
+      final match = regex.firstMatch(message);
+      if (match != null) {
+        final numericText = match.group(1)!.replaceAll(',', '.');
+        final kwh = double.tryParse(numericText);
+        if (kwh != null) {
+          // Persiste la consommation pour affichage même après reconnexion
+          final model = ConsumptionModel(kwh: kwh, timestamp: DateTime.now());
+          // Persistance SQLite
+          repo_consumption.addConsumption(model);
+          // Mise à jour immédiate de l'état en mémoire pour rafraîchir l'UI
+          consumptionVM?.addConsumption(model);
+          // Met à jour l'aperçu
+          lastSms = "$kwh";
+        }
       }
+    } catch (_) {
+      // Ignore les erreurs de parsing silencieusement
+    }
 
   }
 }
