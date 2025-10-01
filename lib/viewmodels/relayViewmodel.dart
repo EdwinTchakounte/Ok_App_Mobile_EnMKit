@@ -17,6 +17,20 @@ class RelayViewModel extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  // Etat d'accusé de réception par relais (mémoire volatile, non persistée)
+  final Map<int, bool> _ackReceivedByRelayId = {};
+  // ACK attendu par relais; rempli lors d'un envoi de commande
+  final Map<int, String> _expectedAckByRelayId = {};
+
+  bool ackReceivedForRelay(int? relayId) {
+    if (relayId == null) return false;
+    // Si non présent en mémoire, retomber sur la valeur persistée du modèle
+    final inMemory = _ackReceivedByRelayId[relayId];
+    if (inMemory != null) return inMemory;
+    final model = _relays.firstWhere((r) => r.id == relayId, orElse: () => RelayModel(id: relayId, amperage: 0));
+    return model.ackReceived;
+  }
+
   RelayViewModel(DBService dbService, SmsService smsService)
       : _repository = RelayRepository(dbService),
         _smsService = smsService {
@@ -63,6 +77,8 @@ class RelayViewModel extends ChangeNotifier {
 
     // 2️⃣ Envoyer le SMS correspondant
     final command = relay.isActive ? "r${relay.id}on" : "r${relay.id}off";
+    // Préparer l'attente d'ACK côté VM (case à cocher désactivée jusqu'à réception)
+    _prepareAckExpectation(relay.id!, command);
     try {
       await _smsService.toggleRelay(relay); // la méthode _sendCommand est utilisée à l'intérieur
     } catch (e) {
@@ -107,5 +123,42 @@ class RelayViewModel extends ChangeNotifier {
   /// Retourne le nombre de relais inactifs
   int get inactiveRelaysCount {
     return _relays.where((r) => !r.isActive).length;
+  }
+
+  /// Prépare l'attente d'un ACK spécifique pour un relais
+  void _prepareAckExpectation(int relayId, String expectedAck) {
+    _expectedAckByRelayId[relayId] = expectedAck.toLowerCase();
+    _ackReceivedByRelayId[relayId] = false;
+    // Persiste également la remise à false (case éteinte) pour le relais concerné
+    final index = _relays.indexWhere((r) => r.id == relayId);
+    if (index != -1) {
+      _relays[index].ackReceived = false;
+      _repository.updateRelayAck(relayId, false);
+    }
+    notifyListeners();
+  }
+
+  /// A appeler depuis la couche supérieure lorsqu'un SMS du kit est reçu
+  void processIncomingSms(String message) {
+    if (message.isEmpty) return;
+    final lower = message.toLowerCase();
+    bool changed = false;
+    // Vérifie pour chaque relais si l'ACK attendu est contenu dans le message
+    _expectedAckByRelayId.forEach((relayId, expected) {
+      if (!_ackReceivedByRelayId.containsKey(relayId) || _ackReceivedByRelayId[relayId] == true) {
+        return; // déjà reçu ou pas suivi
+      }
+      if (lower.contains(expected)) {
+        _ackReceivedByRelayId[relayId] = true;
+        // Persiste sur le modèle et en base
+        final idx = _relays.indexWhere((r) => r.id == relayId);
+        if (idx != -1) {
+          _relays[idx].ackReceived = true;
+          _repository.updateRelayAck(relayId, true);
+        }
+        changed = true;
+      }
+    });
+    if (changed) notifyListeners();
   }
 }

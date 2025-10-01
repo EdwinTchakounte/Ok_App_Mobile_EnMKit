@@ -30,6 +30,16 @@ class RelayRepository {
     );
   }
 
+  Future<void> updateRelayAck(int id, bool ackReceived) async {
+    final db = await _dbService.database;
+    await db.update(
+      'relays',
+      {'ackReceived': ackReceived ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   // Modifier uniquement le nom du relais
   Future<void> updateRelayName(String id, String newName) async {
     final db = await _dbService.database;

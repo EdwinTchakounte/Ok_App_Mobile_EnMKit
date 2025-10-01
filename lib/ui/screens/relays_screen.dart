@@ -10,6 +10,7 @@ class RelaysScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final relayViewModel = ref.watch(relaysProvider);
+    final smsVM = ref.watch(smsListenerProvider);
     final relays = relayViewModel.relays;
 
     return Scaffold(
@@ -27,11 +28,19 @@ class RelaysScreen extends ConsumerWidget {
         ),
         centerTitle: false,
       ),
-      body: relayViewModel.isLoading
-          ? _buildLoadingState()
-          : relays.isEmpty
-              ? _buildEmptyState()
-              : _buildRelaysList(context, relays, relayViewModel),
+      body: StreamBuilder<String>(
+        stream: smsVM.trustedSms$,
+        builder: (context, snapshot) {
+          if (snapshot.hasData && (snapshot.data ?? '').isNotEmpty) {
+            relayViewModel.processIncomingSms(snapshot.data!);
+          }
+          return relayViewModel.isLoading
+              ? _buildLoadingState()
+              : relays.isEmpty
+                  ? _buildEmptyState()
+                  : _buildRelaysList(context, relays, relayViewModel);
+        },
+      ),
     );
   }
 
@@ -212,6 +221,7 @@ class RelaysScreen extends ConsumerWidget {
   Widget _buildModernRelayCard(
       BuildContext context, RelayModel relay, RelayViewModel viewModel) {
     final isActive = relay.isActive;
+    final ack = viewModel.ackReceivedForRelay(relay.id);
     
     return Container(
       decoration: BoxDecoration(
@@ -296,7 +306,7 @@ class RelaysScreen extends ConsumerWidget {
               ),
             ),
             
-            // Switch moderne
+            // Switch moderne + ACK checkbox
             Transform.scale(
               scale: 0.9,
               child: Switch.adaptive(
@@ -335,6 +345,30 @@ class RelaysScreen extends ConsumerWidget {
                 inactiveThumbColor: const Color(0xFFF1F5F9),
                 inactiveTrackColor: const Color(0xFFE2E8F0),
               ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: ack,
+                      onChanged: null,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Accusé',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: ack ? const Color(0xFF10B981) : const Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
