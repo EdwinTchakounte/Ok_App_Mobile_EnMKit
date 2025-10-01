@@ -68,4 +68,9 @@ Future<void> toggleRelay(RelayModel relay) async {
   Future<void> setPulsation(int puls) async {
     await _sendCommand("puls:$puls");
   }
+
+  /// Demander au kit d'appliquer/committer la configuration reçue
+  Future<void> applyConfiguration() async {
+    await _sendCommand("apply_config");
+  }
 }

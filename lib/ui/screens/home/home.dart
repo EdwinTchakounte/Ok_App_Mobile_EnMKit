@@ -322,10 +322,14 @@ class HomeScreen extends ConsumerWidget {
               
               _buildMiniStat('${total_relay}', 'Relais', Icons.power),
               _buildMiniStat(
-  consumption.getLastConsumption()?.toString() ?? 'Pas de données',
-  'kWh',
-  Icons.flash_on,
-),
+                (() {
+                  final last = consumption.getLastConsumption();
+                  if (last == null) return 'Pas de données';
+                  return '${last.kwh}';
+                })(),
+                'kWh',
+                Icons.flash_on,
+              ),
 
               _buildMiniStat('98%', 'Statut', Icons.check_circle),
             ],
@@ -778,6 +782,11 @@ class ConsumptionScreen extends ConsumerWidget {
       ),
       child: ElevatedButton.icon(
         onPressed: () {
+             // Armer la fenêtre d'acceptation des réponses de consommation
+             try {
+               final smsListener = ref.read(smsListenerProvider);
+               smsListener.armConsumptionWindow(window: const Duration(minutes: 5));
+             } catch (_) {}
              _smsService.requestConsumption();
         },
         style: ElevatedButton.styleFrom(
@@ -1504,26 +1513,123 @@ void addRelay({required String name, required String amperage}) {
           ),
 
            TextButton(
-            onPressed: () {
+            onPressed: () async {
+              final smsListener = ref.read(smsListenerProvider);
               SnackBar snackBar = const SnackBar(
-                content: Text('Parametrage en Cours de Synchronisation', style: TextStyle(color: Colors.white)),
+                content: Text('Paramétrage en cours, en attente des accusés...', style: TextStyle(color: Colors.white)),
                 backgroundColor: Color(0xFF3B82F6),
                 duration: Duration(seconds: 2),);
-                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                 sms_service.setPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
-                 if(numero_allows.allowedNumbers.length>1){
-                  sms_service.setPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
-                 }
-                 sms_service.setInitialConsumption(kit_data.kits.first.initialConsumption??0);
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-                 sms_service.setPulsation(kit_data.kits.first.pulseCount??0);
-                 SnackBar snackBar2 = const SnackBar(
-                content: Text('Parametrage terminé', style: TextStyle(color: Colors.white)),
-                backgroundColor: Color(0xFF3B82F6),
-                duration: Duration(seconds: 2),);
+              // 1) Envoyer les trois messages (affiche une notification 30s chacune)
+              try {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Envoi cons_initial...', style: TextStyle(color: Colors.white)),
+                    backgroundColor: Color(0xFF3B82F6),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                sms_service.setInitialConsumption(kit_data.kits.first.initialConsumption??0);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Envoi puls...', style: TextStyle(color: Colors.white)),
+                    backgroundColor: Color(0xFF3B82F6),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                sms_service.setPulsation(kit_data.kits.first.pulseCount??0);
+                if(numero_allows.allowedNumbers.isNotEmpty){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Envoi num:${numero_allows.allowedNumbers.first.phoneNumber}...', style: const TextStyle(color: Colors.white)),
+                      backgroundColor: const Color(0xFF3B82F6),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  sms_service.setPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
+                }
+                if(numero_allows.allowedNumbers.length>1){
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Envoi num:${numero_allows.allowedNumbers[1].phoneNumber}...', style: const TextStyle(color: Colors.white)),
+                      backgroundColor: const Color(0xFF3B82F6),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  sms_service.setPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur envoi SMS: $e')),
+                );
+                return;
+              }
+
+              // 2) Attendre les ACKs correspondants (jusqu'à 5 minutes en tout)
+              final expectedAcksSet = <String>{
+                'cons_initial',
+                'puls',
+                'num',
+              };
+              final receivedAll = await smsListener.waitForAllAcks(expectedAcksSet, totalTimeout: const Duration(minutes: 5));
+
+              if (!receivedAll) {
+                // Proposer de renvoyer
+                final retry = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E293B),
+                    title: const Text('Accusés non reçus', style: TextStyle(color: Colors.white)),
+                    content: const Text('Souhaites-tu renvoyer les messages ?', style: TextStyle(color: Colors.white70)),
+                    actions: [
+                      TextButton(onPressed: ()=> Navigator.pop(context, false), child: const Text('Non', style: TextStyle(color: Colors.white70))),
+                      ElevatedButton(onPressed: ()=> Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)), child: const Text('Renvoyer')),
+                    ],
+                  ),
+                );
+                if (retry == true) {
+                  // Relancer l'action
+                  try {
+                    sms_service.setInitialConsumption(kit_data.kits.first.initialConsumption??0);
+                    sms_service.setPulsation(kit_data.kits.first.pulseCount??0);
+                    if(numero_allows.allowedNumbers.isNotEmpty){
+                      sms_service.setPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
+                    }
+                    if(numero_allows.allowedNumbers.length>1){
+                      sms_service.setPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
+                    }
+                  } catch (_) {}
+                }
+                return;
+              }
+
+              // 3) Tous les ACKs reçus: demander au kit d'appliquer (avec notif 30s)
+              try {
+                // Notification visuelle lors de l'envoi de apply_config
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Envoi apply_config...', style: TextStyle(color: Colors.white)),
+                    backgroundColor: Color(0xFF3B82F6),
+                    duration: Duration(seconds: 30),
+                  ),
+                );
+                await sms_service.applyConfiguration();
+                // Attendre que la notification de 30s se termine avant d'afficher la suivante
+                await Future.delayed(const Duration(seconds: 30));
+                SnackBar snackBar2 = const SnackBar(
+                  content: Text('Paramétrage validé et appliqué', style: TextStyle(color: Colors.white)),
+                  backgroundColor: Color(0xFF10B981),
+                  duration: Duration(seconds: 2),);
                 ScaffoldMessenger.of(context).showSnackBar(snackBar2);
-               Navigator.pop(context);
-               },
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur application configuration: $e')),
+                );
+              }
+            },
             child: const Text('Valider', style: TextStyle(color: Colors.white70)),
           ),
            
