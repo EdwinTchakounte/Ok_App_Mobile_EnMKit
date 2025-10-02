@@ -1517,73 +1517,40 @@ void addRelay({required String name, required String amperage}) {
             onPressed: () async {
               final smsListener = ref.read(smsListenerProvider);
               
-              // Fonction helper pour envoyer tous les messages une seule fois
-              Future<Map<String, String>> sendAllMessages() async {
-                Map<String, String> sentMessages = {};
-                
-                // Envoi consommation initiale (en:)
+              // Fonction helper pour envoyer le message concaténé unique
+              Future<String> sendConcatenatedMessage() async {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Envoi en (consommation initiale)...', style: TextStyle(color: Colors.white)),
+                    content: Text('Envoi configuration système complète...', style: TextStyle(color: Colors.white)),
                     backgroundColor: Color(0xFF3B82F6),
-                    duration: Duration(seconds: 2),
+                    duration: Duration(seconds: 3),
                   ),
                 );
-                await sms_service.setInitialConsumption(kit_data.kits.first.initialConsumption??0);
-                sentMessages['en'] = 'en:${kit_data.kits.first.initialConsumption??0}';
-
-                // Envoi pulsation (ip:)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Envoi ip (pulsation)...', style: TextStyle(color: Colors.white)),
-                    backgroundColor: Color(0xFF3B82F6),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                await sms_service.setPulsation(kit_data.kits.first.pulseCount??0);
-                sentMessages['ip'] = 'ip:${kit_data.kits.first.pulseCount??0}';
-
-                // Envoi premier numéro (n1:)
-                if(numero_allows.allowedNumbers.isNotEmpty){
-                  final formattedPhone1 = sms_service.formatPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Envoi n1:$formattedPhone1...', style: const TextStyle(color: Colors.white)),
-                      backgroundColor: const Color(0xFF3B82F6),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  await sms_service.setFirstPhoneNumber(numero_allows.allowedNumbers.first.phoneNumber);
-                  sentMessages['n1'] = 'n1:$formattedPhone1';
-                }
-
-                // Envoi second numéro (n2:)
-                if(numero_allows.allowedNumbers.length>1){
-                  final formattedPhone2 = sms_service.formatPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Envoi n2:$formattedPhone2...', style: const TextStyle(color: Colors.white)),
-                      backgroundColor: const Color(0xFF3B82F6),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  await sms_service.setSecondPhoneNumber(numero_allows.allowedNumbers[1].phoneNumber);
-                  sentMessages['n2'] = 'n2:$formattedPhone2';
-                }
                 
-                return sentMessages;
+                final concatenatedMessage = await sms_service.sendConcatenatedSystemConfig(
+                  firstPhone: numero_allows.allowedNumbers.isNotEmpty 
+                      ? numero_allows.allowedNumbers.first.phoneNumber 
+                      : null,
+                  secondPhone: numero_allows.allowedNumbers.length > 1 
+                      ? numero_allows.allowedNumbers[1].phoneNumber 
+                      : null,
+                  initialConsumption: kit_data.kits.first.initialConsumption?.toDouble() ?? 0.0,
+                  pulsation: kit_data.kits.first.pulseCount ?? 0,
+                );
+                
+                return concatenatedMessage;
               }
 
               SnackBar snackBar = const SnackBar(
-                content: Text('Paramétrage en cours, en attente des accusés...', style: TextStyle(color: Colors.white)),
+                content: Text('Paramétrage en cours, en attente de l\'accusé...', style: TextStyle(color: Colors.white)),
                 backgroundColor: Color(0xFF3B82F6),
                 duration: Duration(seconds: 2),);
               ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-              // 1) Envoyer les messages avec les nouveaux formats
-              Map<String, String> sentMessages = {};
+              // 1) Envoyer le message concaténé unique
+              String sentMessage = '';
               try {
-                sentMessages = await sendAllMessages();
+                sentMessage = await sendConcatenatedMessage();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Erreur envoi SMS: $e')),
@@ -1591,13 +1558,9 @@ void addRelay({required String name, required String amperage}) {
                 return;
               }
 
-              // 2) Attendre les ACKs correspondants avec les nouveaux formats
-              final expectedAcksSet = <String>{
-                'en',  // pour consommation initiale
-                'ip',  // pour pulsation
-                if(numero_allows.allowedNumbers.isNotEmpty) 'n1',  // premier numéro
-                if(numero_allows.allowedNumbers.length>1) 'n2',    // second numéro
-              };
+              // 2) Attendre l'ACK correspondant au message concaténé
+              // Créer un set avec une partie identifiable du message pour l'attente
+              final expectedAcksSet = <String>{sentMessage.split(':')[0]}; // utilise la première partie (ex: "n1")
               
               // Collecter les messages d'accusés reçus pour vérification stricte
               List<String> receivedAcks = [];
@@ -1626,36 +1589,27 @@ void addRelay({required String name, required String amperage}) {
                   ),
                 );
                 if (retry == true) {
-                  // Relancer l'action avec les nouveaux formats
+                  // Relancer l'action avec le nouveau format
                   try {
-                    sentMessages = await sendAllMessages();
+                    sentMessage = await sendConcatenatedMessage();
                   } catch (_) {}
                 }
                 return;
               }
 
-              // 3) Vérification stricte des messages reçus vs envoyés
-              bool allMessagesVerified = true;
-              List<String> failedVerifications = [];
+              // 3) Vérification stricte du message reçu vs envoyé
+              bool messageVerified = false;
+              String validAckMessage = '';
               
-              for (String sentKey in sentMessages.keys) {
-                String sentMessage = sentMessages[sentKey]!;
-                bool found = false;
-                
-                for (String ackMessage in receivedAcks) {
-                  if (sms_service.verifyAckMessage(ackMessage, sentMessage)) {
-                    found = true;
-                    break;
-                  }
-                }
-                
-                if (!found) {
-                  allMessagesVerified = false;
-                  failedVerifications.add(sentMessage);
+              for (String ackMessage in receivedAcks) {
+                if (sms_service.verifyAckMessage(ackMessage, sentMessage)) {
+                  messageVerified = true;
+                  validAckMessage = ackMessage;
+                  break;
                 }
               }
               
-              if (!allMessagesVerified) {
+              if (!messageVerified) {
                 // Afficher dialogue de demande de renvoi pour vérification échouée
                 final retryVerification = await showDialog<bool>(
                   context: context,
@@ -1666,13 +1620,13 @@ void addRelay({required String name, required String amperage}) {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Les messages suivants ne correspondent pas aux accusés reçus:', 
+                        const Text('Le message de configuration ne correspond pas à l\'accusé reçu:', 
                                    style: TextStyle(color: Colors.white70)),
                         const SizedBox(height: 8),
-                        ...failedVerifications.map((msg) => Text('• $msg', 
-                                                               style: const TextStyle(color: Colors.red, fontSize: 12))),
+                        Text('• $sentMessage', 
+                             style: const TextStyle(color: Colors.red, fontSize: 12)),
                         const SizedBox(height: 16),
-                        const Text('Souhaites-tu renvoyer les messages ?', 
+                        const Text('Souhaites-tu renvoyer le message ?', 
                                    style: TextStyle(color: Colors.white70)),
                       ],
                     ),
@@ -1689,13 +1643,42 @@ void addRelay({required String name, required String amperage}) {
                 if (retryVerification == true) {
                   // Relancer l'action complète
                   try {
-                    sentMessages = await sendAllMessages();
+                    sentMessage = await sendConcatenatedMessage();
                   } catch (_) {}
                 }
                 return;
               }
 
-              // 4) Tous les ACKs reçus et vérifiés: demander au kit d'appliquer (ok)
+              // 4) ACK reçu et vérifié: afficher les informations de configuration
+              if (validAckMessage.isNotEmpty) {
+                final configData = sms_service.parseAckMessage(validAckMessage);
+                
+                // Debug: afficher le message brut et les données parsées
+                print('=== DEBUG ACK MESSAGE ===');
+                print('Message brut reçu: $validAckMessage');
+                print('Données parsées: $configData');
+                print('========================');
+                
+                if (configData.isNotEmpty) {
+                  // Ajouter des informations de debug si peu de données
+                  if (configData.length == 1) {
+                    configData['⚠️ Debug'] = 'Message brut: $validAckMessage';
+                  }
+                  _showConfigurationConfirmation(configData);
+                  // Attendre un peu pour que l'utilisateur puisse voir la confirmation
+                  await Future.delayed(const Duration(seconds: 2));
+                } else {
+                  // Si aucune donnée n'a été parsée, afficher le message brut avec debug
+                  _showConfigurationConfirmation({
+                    '⚠️ Parsing échoué': 'Toutes les méthodes ont échoué',
+                    'Message brut reçu': validAckMessage,
+                    'Longueur': '${validAckMessage.length} caractères'
+                  });
+                  await Future.delayed(const Duration(seconds: 3));
+                }
+              }
+
+              // 5) Demander au kit d'appliquer (ok)
               try {
                 // Notification visuelle lors de l'envoi de "ok"
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1736,6 +1719,124 @@ void addRelay({required String name, required String amperage}) {
         children: [
           Text(label, style: const TextStyle(color: Colors.white70)),
           Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  /// Affiche une boîte de dialogue avec les informations de configuration reçues dans l'ACK
+  void _showConfigurationConfirmation(Map<String, String> configData) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: Color(0xFF10B981),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Configuration Confirmée',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Le kit a confirmé la réception et l\'application des paramètres suivants :',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                children: configData.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          entry.key,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          entry.value,
+                          style: const TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF3B82F6),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Votre kit est maintenant configuré avec ces paramètres.',
+                      style: TextStyle(
+                        color: Color(0xFF3B82F6),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Parfait !'),
+          ),
         ],
       ),
     );
