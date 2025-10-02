@@ -7,6 +7,35 @@ class SmsService {
 
   SmsService(this._kitRepository);
 
+  /// Formate automatiquement un numéro de téléphone en ajoutant l'indicatif pays +237 si manquant
+  String formatPhoneNumber(String phoneNumber) {
+    // Nettoyer le numéro (supprimer espaces, tirets, etc.)
+    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    
+    // Si le numéro commence déjà par +237, le retourner tel quel
+    if (cleanNumber.startsWith('+237')) {
+      return cleanNumber;
+    }
+    
+    // Si le numéro commence par 237, ajouter le +
+    if (cleanNumber.startsWith('237')) {
+      return '+$cleanNumber';
+    }
+    
+    // Si le numéro commence par 0, le remplacer par +237
+    if (cleanNumber.startsWith('0')) {
+      return '+237${cleanNumber.substring(1)}';
+    }
+    
+    // Si le numéro est un numéro local (6, 7, 8, 9 chiffres), ajouter +237
+    if (cleanNumber.length >= 6 && cleanNumber.length <= 9) {
+      return '+237$cleanNumber';
+    }
+    
+    // Sinon, retourner le numéro tel quel
+    return cleanNumber;
+  }
+
   /// Méthode générique pour envoyer un SMS
   Future<void> _sendCommand(String command) async {
     try {
@@ -54,23 +83,75 @@ Future<void> toggleRelay(RelayModel relay) async {
     await _sendCommand("cons");
   }
 
-  /// Définir numéro (par ex. num1:678123456)
-  Future<void> setPhoneNumber(String phone) async {
-    await _sendCommand("num:$phone");
+  /// Définir le premier numéro autorisé (n1:+237678123456)
+  Future<void> setFirstPhoneNumber(String phone) async {
+    final formattedPhone = formatPhoneNumber(phone);
+    await _sendCommand("n1:$formattedPhone");
   }
 
-  /// Définir consommation initiale
+  /// Définir le second numéro autorisé (n2:+237698435687)
+  Future<void> setSecondPhoneNumber(String phone) async {
+    final formattedPhone = formatPhoneNumber(phone);
+    await _sendCommand("n2:$formattedPhone");
+  }
+
+  /// Définir consommation initiale (en:300.0)
   Future<void> setInitialConsumption(double consInitial) async {
-    await _sendCommand("cons_initial:$consInitial");
+    await _sendCommand("en:$consInitial");
   }
 
-  /// Définir le nombre de pulsations
+  /// Définir le nombre de pulsations (ip:200)
   Future<void> setPulsation(int puls) async {
-    await _sendCommand("puls:$puls");
+    await _sendCommand("ip:$puls");
   }
 
-  /// Demander au kit d'appliquer/committer la configuration reçue
+  /// Demander au kit d'appliquer/committer la configuration reçue (ok)
   Future<void> applyConfiguration() async {
-    await _sendCommand("apply_config");
+    await _sendCommand("ok");
+  }
+
+  /// Méthode pour maintenir la compatibilité (deprecated)
+  @Deprecated('Use setFirstPhoneNumber or setSecondPhoneNumber instead')
+  Future<void> setPhoneNumber(String phone) async {
+    await setFirstPhoneNumber(phone);
+  }
+
+  /// Génère les messages attendus pour la vérification stricte
+  Map<String, String> generateExpectedMessages({
+    String? firstPhone,
+    String? secondPhone,
+    double? initialConsumption,
+    int? pulsation,
+  }) {
+    final Map<String, String> expectedMessages = {};
+    
+    if (firstPhone != null) {
+      final formattedPhone = formatPhoneNumber(firstPhone);
+      expectedMessages['n1'] = "n1:$formattedPhone";
+    }
+    
+    if (secondPhone != null) {
+      final formattedPhone = formatPhoneNumber(secondPhone);
+      expectedMessages['n2'] = "n2:$formattedPhone";
+    }
+    
+    if (initialConsumption != null) {
+      expectedMessages['en'] = "en:$initialConsumption";
+    }
+    
+    if (pulsation != null) {
+      expectedMessages['ip'] = "ip:$pulsation";
+    }
+    
+    return expectedMessages;
+  }
+
+  /// Vérifie si un message d'accusé correspond exactement au message envoyé
+  bool verifyAckMessage(String ackMessage, String expectedMessage) {
+    // Normaliser les messages pour la comparaison (supprimer espaces, casse)
+    final normalizedAck = ackMessage.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final normalizedExpected = expectedMessage.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    
+    return normalizedAck.contains(normalizedExpected);
   }
 }

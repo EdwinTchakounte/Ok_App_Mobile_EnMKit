@@ -138,6 +138,21 @@ class SmsListenerViewModel extends ChangeNotifier {
         lower.startsWith('conso ');
   }
 
+  /// Vérifie si un message est un accusé de réception avec les nouveaux formats
+  bool _isAckMessage(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('n1:') ||  // accusé numéro 1
+           lower.contains('n2:') ||  // accusé numéro 2
+           lower.contains('en:') ||  // accusé consommation initiale
+           lower.contains('ip:') ||  // accusé pulsation
+           lower.contains('ok') ||   // accusé apply_config
+           // Anciens formats pour compatibilité
+           lower.contains('num:') ||
+           lower.contains('cons_initial:') ||
+           lower.contains('puls:') ||
+           lower.contains('apply_config');
+  }
+
   /// Attend un accusé contenant [expectedSubstring]. Retourne true si reçu avant [timeout].
   Future<bool> waitForAckContains(String expectedSubstring, {Duration timeout = const Duration(seconds: 30)}) async {
     try {
