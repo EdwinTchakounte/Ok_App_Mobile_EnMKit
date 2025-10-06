@@ -145,12 +145,12 @@ class SmsListenerViewModel extends ChangeNotifier {
            lower.contains('n2:') ||  // accusé numéro 2
            lower.contains('en:') ||  // accusé consommation initiale
            lower.contains('ip:') ||  // accusé pulsation
-           lower.contains('ok') ||   // accusé apply_config
+           lower.contains('Fin_config') ||   // accusé apply_config
            // Anciens formats pour compatibilité
            lower.contains('num:') ||
            lower.contains('cons_initial:') ||
            lower.contains('puls:') ||
-           lower.contains('apply_config');
+           lower.contains('Fin_config');
   }
 
   /// Attend un accusé contenant [expectedSubstring]. Retourne true si reçu avant [timeout].

@@ -1653,37 +1653,15 @@ void addRelay({required String name, required String amperage}) {
               if (validAckMessage.isNotEmpty) {
                 final configData = sms_service.parseAckMessage(validAckMessage);
                 
-                // Debug: afficher le message brut et les données parsées
-                print('=== DEBUG ACK MESSAGE ===');
-                print('Message brut reçu: $validAckMessage');
-                print('Données parsées: $configData');
-                print('========================');
-                
-                if (configData.isNotEmpty) {
-                  // Ajouter des informations de debug si peu de données
-                  if (configData.length == 1) {
-                    configData['⚠️ Debug'] = 'Message brut: $validAckMessage';
-                  }
-                  _showConfigurationConfirmation(configData);
-                  // Attendre un peu pour que l'utilisateur puisse voir la confirmation
-                  await Future.delayed(const Duration(seconds: 2));
-                } else {
-                  // Si aucune donnée n'a été parsée, afficher le message brut avec debug
-                  _showConfigurationConfirmation({
-                    '⚠️ Parsing échoué': 'Toutes les méthodes ont échoué',
-                    'Message brut reçu': validAckMessage,
-                    'Longueur': '${validAckMessage.length} caractères'
-                  });
-                  await Future.delayed(const Duration(seconds: 3));
-                }
+
               }
 
               // 5) Demander au kit d'appliquer (ok)
               try {
-                // Notification visuelle lors de l'envoi de "ok"
+                // Notification visuelle lors de l'envoi de "Fin_config"
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Envoi ok (application config)...', style: TextStyle(color: Colors.white)),
+                    content: Text('Envoi Fin_config(application config)...', style: TextStyle(color: Colors.white)),
                     backgroundColor: Color(0xFF3B82F6),
                     duration: Duration(seconds: 30),
                   ),

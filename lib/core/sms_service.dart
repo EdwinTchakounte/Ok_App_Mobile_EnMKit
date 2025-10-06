@@ -107,7 +107,7 @@ Future<void> toggleRelay(RelayModel relay) async {
 
   /// Demander au kit d'appliquer/committer la configuration reçue (ok)
   Future<void> applyConfiguration() async {
-    await _sendCommand("ok");
+    await _sendCommand("Fin_config");
   }
 
   /// Envoie la configuration système complète en un seul message concaténé
@@ -403,15 +403,4 @@ Future<void> toggleRelay(RelayModel relay) async {
     return result;
   }
 
-  /// Méthode de test pour créer des données fictives (pour debug uniquement)
-  Map<String, String> _createTestData(String originalMessage) {
-    return {
-      'Message original': originalMessage,
-      'Test Numéro 1': '+237670184922',
-      'Test Numéro 2': '+237692485776', 
-      'Test Consommation': '10.0 kWh',
-      'Test Pulsation': '1000',
-      '⚠️ Note': 'Données de test - parsing a échoué'
-    };
-  }
 }
