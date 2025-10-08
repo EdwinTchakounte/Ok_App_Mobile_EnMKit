@@ -3,8 +3,9 @@ class DefaultData {
   static const adminPassword = '1234';
 
   static const defaultRelays = [
-    { 'name': 'Relais 1', 'isActive': 0,'amperage': 4},
-    { 'name': 'Relais 2', 'isActive': 0,'amperage': 4},
-    { 'name': 'Relais 3', 'isActive': 0,'amperage': 8},
+    { 'name': 'Relais 1', 'isActive': 0,'amperage': 30},
+    { 'name': 'Relais 2', 'isActive': 0,'amperage': 25},
+    { 'name': 'Relais 3', 'isActive': 0,'amperage': 25},
+    { 'name': 'Relais 4', 'isActive': 0,'amperage': 16},
   ];
 }

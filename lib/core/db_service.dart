@@ -96,7 +96,7 @@ class DBService {
     'hasConnected': 0,
   }); 
 
-   // insertion des 3 relais par défaut
+   // insertion des 4 relais par défaut
   for (var relay in DefaultData.defaultRelays) {
     await db.insert('relays', {
       'name': relay['name'],

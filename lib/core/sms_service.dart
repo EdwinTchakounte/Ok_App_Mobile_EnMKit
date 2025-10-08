@@ -73,7 +73,7 @@ Future<void> toggleRelay(RelayModel relay) async {
     throw Exception("L'identifiant du relais est nul");
   }
 
-  final command = relay.isActive ? "r${relay.id}on" : "r${relay.id}off";
+  final command = relay.isActive ? "R${relay.id}on" : "R${relay.id}off";
   await _sendCommand(command);
 }
 

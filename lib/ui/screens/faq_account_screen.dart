@@ -30,9 +30,9 @@ class FaqAccountScreen extends StatelessWidget {
                 'Créer un compte EnMKit',
                 Icons.person_add_alt,
                 const [
-                  'Ouvre l\'application EnMKit Control.',
-                  'Depuis l\'écran d\'accueil, touche « Se connecter / Créer un compte ».',
-                  'Renseigne ton email et un mot de passe sécurisé.',
+                  'Ouvre l\'application EnMKit.',
+                  'Allez sur la page d\'inscrirrption ».',
+                  'Renseigne ton numéro de téléphone, et un mot de passe sécurisé.',
                   'Valide la création.',
                 ],
               ),
@@ -42,7 +42,7 @@ class FaqAccountScreen extends StatelessWidget {
                 Icons.login,
                 const [
                   'Accède à l\'écran de connexion.',
-                  'Entre tes identifiants (email + mot de passe).',
+                  'Entre tes identifiants (numéro de téléphone + mot de passe).',
                   'Appuie sur « Connexion ».',
                   'En cas d\'échec, vérifie t\'es identifiant et recommence.',
                 ],

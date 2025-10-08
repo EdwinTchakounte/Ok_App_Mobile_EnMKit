@@ -76,7 +76,7 @@ class RelayViewModel extends ChangeNotifier {
     await _repository.updateRelay(relay);
 
     // 2️⃣ Envoyer le SMS correspondant
-    final command = relay.isActive ? "r${relay.id}on" : "r${relay.id}off";
+    final command = relay.isActive ? "R${relay.id}on" : "R${relay.id}off";
     // Préparer l'attente d'ACK côté VM (case à cocher désactivée jusqu'à réception)
     _prepareAckExpectation(relay.id!, command);
     try {

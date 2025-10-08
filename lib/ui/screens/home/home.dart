@@ -1352,7 +1352,7 @@ void _showControllersDialog(WidgetRef ref) {
   void _showAddControllerDialog() {
     final relays_data = ref.watch(relaysProvider);
   final TextEditingController nameController = TextEditingController();
-  String selectedAmperage = '4'; // valeur par défaut
+  String selectedAmperage = '30'; // valeur par défaut
 
   showDialog(
     context: context,
@@ -1393,7 +1393,7 @@ void _showControllersDialog(WidgetRef ref) {
               ),
             ),
             style: const TextStyle(color: Colors.white),
-            items: ['4', '8','12']
+            items: ['30', '25','25', '16']
                 .map((amp) => DropdownMenuItem(
                       value: amp,
                       child: Text(amp, style: const TextStyle(color: Colors.white)),
