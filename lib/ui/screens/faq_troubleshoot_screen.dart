@@ -24,11 +24,12 @@ class FaqTroubleshootScreen extends StatelessWidget {
               _buildHero(),
               const SizedBox(height: 24),
               _buildSection(
-                'Le Kit n\'apparaît pas',
+                'Le Kit a un problème de configuration',
                 Icons.visibility_off_outlined,
                 const [
                   'Vérifie le numéro du Kit dans Paramètres → « Numéro du Kit ».',
                   'Confirme que le Kit est alimenté et câblé correctement.',
+                  'Vérifie a un forfait sms',
                   'Synchronise via « État Système » → « Valider ».'
                 ],
               ),
@@ -47,8 +48,7 @@ class FaqTroubleshootScreen extends StatelessWidget {
                 'Relais non réactif',
                 Icons.power_settings_new,
                 const [
-                  'Vérifie les connexions et l\'ampérage du relais.',
-                  'Contrôle que le relais est bien créé et actif dans « Relais Configurés » (Admin).',
+                  'Vérifie ton forfait sms',
                   'Redémarre l\'appareil puis réessaie.'
                 ],
               ),

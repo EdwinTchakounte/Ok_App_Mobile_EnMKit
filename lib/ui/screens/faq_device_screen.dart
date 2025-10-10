@@ -43,7 +43,7 @@ class FaqDeviceScreen extends StatelessWidget {
                 Icons.device_hub,
                 const [
                   'Paramètres → « Relais Configurés » (Administrateur).',
-                  'Ajouter: indique le nom (ex: Salon) et l\'ampérage (4/8/12A).',
+                  'Ajouter: indique le nom (ex: Salon) et l\'ampérage (30/25/25/16A).',
                   'Modifier/Supprimer: utilise les icônes dédiées sur chaque relais.'
                 ],
               ),
